@@ -39,7 +39,7 @@ class AppEID(tk.Tk):
                  bg=AZUL_MEDIO, fg=AMARILLO).pack(side="left", padx=15, pady=8)
 
         tk.Label(barra,
-                 text="Versión 2026 · Higueras, N. Oyarzo, F.",
+                 text="Versión 2026 · Benjamin C. Eduardo D. Ricardo G.",
                  font=("Helvetica", 8),
                  bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(side="right", padx=12)
 

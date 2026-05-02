@@ -40,8 +40,10 @@ class PanelConica(tk.Frame):
         tk.Label(self, text="Análisis de Secciones Cónicas",
                  font=("Helvetica", 16, "bold"),
                  bg=AZUL_OSCURO, fg=AMARILLO).pack(pady=(15, 5))
+        tk.Label(self, text="Ingresa tu RUT para generar la cónica automáticamente.",
+                 font=("Helvetica", 10), bg=AZUL_OSCURO, fg=GRIS_TEXTO).pack()
         tk.Label(self, text="MAT1186 · UCT · 2026",
-                 font=("Helvetica", 9), bg=AZUL_OSCURO, fg=GRIS_TEXTO).pack()
+                 font=("Helvetica", 9), bg=AZUL_OSCURO, fg=GRIS_TEXTO).pack(pady=(0, 10))
 
         # ── Entrada RUT ──────────────────────────────────────
         frame_rut = tk.Frame(self, bg=AZUL_MEDIO, padx=15, pady=10)
@@ -69,7 +71,12 @@ class PanelConica(tk.Frame):
                   font=("Helvetica", 11, "bold"),
                   bg=AMARILLO, fg=AZUL_OSCURO,
                   relief="flat", padx=12, pady=5,
-                  cursor="hand2").pack()
+                  cursor="hand2").pack(side="left")
+        tk.Button(btn_frame, text="🗑 Limpiar", command=self._limpiar,
+                  font=("Helvetica", 10),
+                  bg=AZUL_MEDIO, fg=BLANCO,
+                  relief="flat", padx=10, pady=5,
+                  cursor="hand2").pack(side="left", padx=(6, 0))
 
         # ── Área principal dividida ──────────────────────────
         main_frame = tk.Frame(self, bg=AZUL_OSCURO)
@@ -114,6 +121,25 @@ class PanelConica(tk.Frame):
                                   bg=AZUL_OSCURO, fg=VERDE)
         self.lbl_tipo.pack(pady=3)
 
+        self.frame_resumen = tk.Frame(right, bg="#2e567f", padx=8, pady=8)
+        self.frame_resumen.pack(fill="x", pady=(5, 8))
+        tk.Label(self.frame_resumen, text="Resumen rápido:",
+                 font=("Helvetica", 10, "bold"),
+                 bg="#2e567f", fg=AMARILLO).pack(anchor="w")
+        self.lbl_resumen_ecuacion = tk.Label(self.frame_resumen,
+                                             text="Ecuación: —",
+                                             font=("Courier", 9),
+                                             bg="#2e567f", fg=GRIS_TEXTO,
+                                             anchor="w", justify="left",
+                                             wraplength=320)
+        self.lbl_resumen_ecuacion.pack(fill="x", pady=(2, 0))
+        self.lbl_resumen_tipo = tk.Label(self.frame_resumen,
+                                         text="Tipo: —",
+                                         font=("Helvetica", 9, "bold"),
+                                         bg="#2e567f", fg=BLANCO,
+                                         anchor="w")
+        self.lbl_resumen_tipo.pack(fill="x", pady=(2, 0))
+
         # ── Elementos geométricos (campos para defensa oral) ──
         tk.Label(right, text="Elementos geométricos (completar en defensa):",
                  font=("Helvetica", 9, "bold"),
@@ -141,6 +167,8 @@ class PanelConica(tk.Frame):
                   bg=VERDE, fg="white", relief="flat",
                   padx=8, pady=3, cursor="hand2").pack(pady=5)
 
+        self._set_defensa_state(False)
+
         # ── Barra de estado ───────────────────────────────────
         self.lbl_estado = tk.Label(self, text="Ingrese un RUT y presione Analizar",
                                     font=("Helvetica", 9), bg=AZUL_OSCURO, fg=GRIS_TEXTO)
@@ -149,7 +177,8 @@ class PanelConica(tk.Frame):
     def _procesar(self):
         rut_str = self.entry_rut.get().strip()
         if not rut_str:
-            messagebox.showwarning("Aviso", "Ingrese un RUT.")
+            self.lbl_estado.config(text="❗ Debes ingresar un RUT.", fg=ROJO)
+            self._limpiar_resultado()
             return
 
         es_valido, pasos_val, digitos, dv_calc = validar_rut(rut_str)
@@ -161,6 +190,9 @@ class PanelConica(tk.Frame):
             self._mostrar_texto(texto)
             self.lbl_estado.config(text="❌ RUT inválido", fg=ROJO)
             self.lbl_tipo.config(text="")
+            self.lbl_resumen_ecuacion.config(text="Ecuación: —")
+            self.lbl_resumen_tipo.config(text="Tipo: —")
+            self._set_defensa_state(False)
             return
 
         self.digitos = digitos
@@ -193,11 +225,14 @@ class PanelConica(tk.Frame):
 
         self._mostrar_texto(texto)
         self.lbl_tipo.config(text=f"Cónica: {tipo}", fg=AMARILLO)
+        self.lbl_resumen_ecuacion.config(text=f"Ecuación: {eq}")
+        self.lbl_resumen_tipo.config(text=f"Tipo: {tipo}")
         self.lbl_estado.config(text=f"✓ RUT válido — {tipo} detectada", fg=VERDE)
 
         # Limpiar campos de defensa
         for e in self.entries_elem.values():
             e.delete(0, "end")
+        self._set_defensa_state(True)
 
         # Graficar
         self._graficar(A, B, C, D, E, tipo, elementos)
@@ -305,6 +340,30 @@ class PanelConica(tk.Frame):
         self.txt_pasos.insert("end", texto)
         self.txt_pasos.config(state="disabled")
         self.txt_pasos.see("1.0")
+
+    def _limpiar_resultado(self):
+        self.lbl_tipo.config(text="")
+        self.lbl_resumen_ecuacion.config(text="Ecuación: —")
+        self.lbl_resumen_tipo.config(text="Tipo: —")
+        self._mostrar_texto("")
+        self.canvas.delete("all")
+        self.canvas.create_text(170, 140, text="Aquí aparecerá la cónica",
+                                 font=("Helvetica", 10), fill="#7a92c6")
+        self._set_defensa_state(False)
+
+    def _set_defensa_state(self, enabled):
+        state = "normal" if enabled else "disabled"
+        bg = BLANCO if enabled else "#d0d7eb"
+        for entry in self.entries_elem.values():
+            entry.config(state=state, bg=bg)
+        if not enabled:
+            for entry in self.entries_elem.values():
+                entry.delete(0, "end")
+
+    def _limpiar(self):
+        self.entry_rut.delete(0, "end")
+        self.lbl_estado.config(text="Ingrese un RUT y presione Analizar", fg=GRIS_TEXTO)
+        self._limpiar_resultado()
 
     def _verificar_elementos(self):
         if not self.elementos:
