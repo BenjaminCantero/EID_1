@@ -20,20 +20,26 @@ python main.py
 ## Estructura del proyecto
 
 ```
-proyecto_EID/
+EID_1/
 │
 ├── main.py                   # Punto de entrada de la aplicación
 ├── README.md                 # Este archivo
 ├── etica.md                  # Código de ética del grupo
 │
 ├── core/
-│   ├── rut.py                # Validación RUT (módulo 11) y extracción de dígitos
-│   ├── conica.py             # Coeficientes, clasificación, forma canónica, graficación
-│   └── limites.py            # Funciones por tramos, límites laterales, discontinuidades
+│   ├── __init__.py           # Paquete core
+│   ├── rut.py                # Validación RUT (módulo 11)
+│   ├── conica.py             # Lógica de cónicas y formas canónicas
+│   ├── limites.py            # Funciones por tramos y límites
+│   ├── modelos.py            # Modelos matemáticos auxiliares
+│   └── graficas.py           # Generación de puntos y tablas para graficación
 │
 └── ui/
-    ├── interfaz_conica.py    # Interfaz gráfica — módulo de cónicas
-    └── interfaz_limites.py   # Interfaz gráfica — módulo de límites
+    ├── __init__.py           # Paquete ui
+    ├── app.py                # Aplicación principal y navegación
+    ├── panel_conica.py       # Panel de análisis de cónicas
+    ├── panel_limites.py      # Panel de funciones y límites
+    └── componentes.py        # Constantes y helpers UI reutilizables
 ```
 
 ---
@@ -51,14 +57,39 @@ proyecto_EID/
 - Clasificación automática de la cónica
 - Transformación a **forma canónica paso a paso**
 - **Procedimiento inverso** (canónica → general)
-- Generación de puntos para graficación (usando series de Taylor, sin `math`)
 
 ### `core/limites.py`
 - Selección automática del tipo de función según `d8 % 3`
 - Construcción de la función por tramos
-- Cálculo de límites laterales
-- Tabla de valores numéricos cercanos al punto `a`
+- Cálculo de límites laterales y análisis de continuidad
 - Clasificación de discontinuidad (removible, salto, infinita)
+
+### `core/modelos.py`
+- Raíz cuadrada por Newton-Raphson
+- Cálculo de cuadrados completos
+- Seno, coseno, exponencial e hiperbólicos por series de Taylor
+
+### `core/graficas.py`
+- Genera puntos para la visualización de cónicas
+- Genera tablas de valores para límites laterales
+- Construye segmentos de canvas para la gráfica de funciones por tramos
+
+### `ui/app.py`
+- Controla la aplicación Tkinter y el notebook principal
+- Centraliza la creación de pestañas y la navegación interna
+
+### `ui/panel_conica.py`
+- Presenta la UI de cónicas
+- Solicita el RUT y muestra resultados matemáticos,
+  forma canónica y gráficos
+
+### `ui/panel_limites.py`
+- Presenta la UI de límites y discontinuidades
+- Genera la función por tramos, calcula límites y muestra tablas
+
+### `ui/componentes.py`
+- Define colores y estilos reutilizables
+- Centraliza la configuración visual de Tkinter
 
 ---
 

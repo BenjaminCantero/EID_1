@@ -1,12 +1,8 @@
 import tkinter as tk
-from tkinter import ttk, filedialog, messagebox
+from tkinter import filedialog, messagebox
 
-AZUL_OSCURO = "#1a2a4a"
-AZUL_MEDIO = "#2d4a7a"
-BLANCO = "#f0f4ff"
-AMARILLO = "#f5c842"
-GRIS_TEXTO = "#e8eaf6"
-VERDE = "#4caf50"
+from core.log_service import export_logs, get_log_entries
+from ui.componentes import AZUL_OSCURO, AZUL_MEDIO, BLANCO, AMARILLO, GRIS_TEXTO, VERDE
 
 
 class PanelLogs(tk.Frame):

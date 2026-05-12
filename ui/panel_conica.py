@@ -1,27 +1,14 @@
-# ui/interfaz_conica.py
-# Módulo de interfaz gráfica para el análisis de cónicas
-# Usa únicamente Tkinter (incluida en Python estándar)
+"""Panel de cónicas y análisis visual."""
 
 import tkinter as tk
-from tkinter import ttk, messagebox, scrolledtext
-import sys
-import os
+from tkinter import messagebox, scrolledtext
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from core.rut import validar_rut, formatear_rut
-from core.conica import (calcular_coeficientes, clasificar_conica,
-                          ecuacion_str, forma_canonica, puntos_grafica)
-
-
-AZUL_OSCURO = "#1a2a4a"
-AZUL_MEDIO = "#2d4a7a"
-AZUL_CLARO = "#4a7abf"
-BLANCO = "#f0f4ff"
-AMARILLO = "#f5c842"
-GRIS_TEXTO = "#e8eaf6"
-VERDE = "#4caf50"
-ROJO = "#e53935"
-NARANJA = "#ff9800"
+from core.rut import validar_rut
+from core.conica import calcular_coeficientes, clasificar_conica, ecuacion_str, forma_canonica
+from core.graficas import puntos_grafica
+from ui.componentes import (AZUL_OSCURO, AZUL_MEDIO, AZUL_CLARO,
+                            BLANCO, AMARILLO, GRIS_TEXTO, VERDE,
+                            ROJO, NARANJA)
 
 
 class PanelConica(tk.Frame):

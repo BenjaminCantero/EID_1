@@ -1,22 +1,15 @@
 
+"""Panel de límites y funciones por tramos."""
+
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
-import sys, os
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from core.rut import validar_rut
-from core.limites import (seleccionar_caso, construir_funcion,
-                           calcular_limites, tabla_valores, puntos_grafica_limite)
-
-AZUL_OSCURO = "#1a2a4a"
-AZUL_MEDIO  = "#2d4a7a"
-AZUL_CLARO  = "#4a7abf"
-BLANCO      = "#f0f4ff"
-AMARILLO    = "#f5c842"
-GRIS_TEXTO  = "#e8eaf6"
-VERDE       = "#4caf50"
-ROJO        = "#e53935"
-NARANJA     = "#ff9800"
+from core.limites import seleccionar_caso, construir_funcion, calcular_limites
+from core.graficas import tabla_valores, puntos_grafica_limite
+from ui.componentes import (AZUL_OSCURO, AZUL_MEDIO, AZUL_CLARO,
+                            BLANCO, AMARILLO, GRIS_TEXTO, VERDE,
+                            ROJO, NARANJA)
 
 
 class PanelLimites(tk.Frame):
