@@ -7,8 +7,10 @@ import os
 # Asegurar que el directorio raíz esté en el path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
+from core.log_service import setup_logger
 from ui.interfaz_conica import PanelConica
 from ui.interfaz_limites import PanelLimites
+from ui.interfaz_logs import PanelLogs
 
 AZUL_OSCURO = "#1a2a4a"
 AZUL_MEDIO  = "#2d4a7a"
@@ -20,6 +22,8 @@ GRIS_TEXTO  = "#e8eaf6"
 class AppEID(tk.Tk):
     def __init__(self):
         super().__init__()
+        self.logger = setup_logger()
+        self.logger.info("Inicializando aplicación EID")
         self.title("EID MAT1186 — Cónicas y Límites · UCT 2026")
         self.geometry("1050x700")
         self.minsize(900, 620)
@@ -63,14 +67,20 @@ class AppEID(tk.Tk):
 
         # Pestaña 1: Cónicas
         self.panel_conica = PanelConica(self.notebook,
-                                         cambiar_tab_callback=self._ir_limites)
+                                         cambiar_tab_callback=self._ir_limites,
+                                         logger=self.logger)
         self.notebook.add(self.panel_conica, text="  📐  Secciones Cónicas  ")
 
         # Pestaña 2: Límites
-        self.panel_limites = PanelLimites(self.notebook)
+        self.panel_limites = PanelLimites(self.notebook, logger=self.logger)
         self.notebook.add(self.panel_limites, text="  📊  Funciones y Límites  ")
 
-        # Pestaña 3: Acerca de
+        # Pestaña 3: Logs
+        self.panel_logs = PanelLogs(self.notebook, logger=self.logger)
+        self.notebook.add(self.panel_logs, text="  📋  Logs  ")
+        self.panel_logs.refrescar()
+
+        # Pestaña 4: Acerca de
         self._agregar_tab_acerca()
 
     def _ir_limites(self):

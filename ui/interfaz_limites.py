@@ -20,8 +20,9 @@ NARANJA     = "#ff9800"
 
 
 class PanelLimites(tk.Frame):
-    def __init__(self, parent):
+    def __init__(self, parent, logger=None):
         super().__init__(parent, bg=AZUL_OSCURO)
+        self.logger = logger
         self.tramos = None
         self.analisis = None
         self.a = 0
@@ -184,10 +185,15 @@ class PanelLimites(tk.Frame):
 
     def _procesar(self):
         rut_str = self.entry_rut.get().strip()
+        if self.logger:
+            self.logger.info(f"PanelLímites: Inicia generación de función para RUT '{rut_str}'")
+
         es_valido, _, digitos, dv = validar_rut(rut_str)
 
         if not es_valido:
             messagebox.showerror("Error", "RUT inválido. Verifique e intente de nuevo.")
+            if self.logger:
+                self.logger.warning(f"PanelLímites: RUT inválido '{rut_str}'")
             return
 
         self.a = digitos[2]  # a = d3
@@ -207,6 +213,8 @@ class PanelLimites(tk.Frame):
         self._mostrar_texto(texto)
         self.lbl_funcion.config(text=f"f(x) definida con a={self.a}  |  Caso: {caso}")
         self.lbl_estado.config(text=f"✓ Función generada — Discontinuidad: {analisis['tipo_disc']}", fg=VERDE)
+        if self.logger:
+            self.logger.info(f"PanelLímites: Función generada para RUT '{rut_str}' — caso '{caso}', tipo '{analisis['tipo_disc']}'")
 
         # Tabla
         for row in self.tabla_tree.get_children():
@@ -324,7 +332,12 @@ class PanelLimites(tk.Frame):
         def num_str(v):
             if v is None:
                 return ["nodefinida", "noexiste", "∞"]
-            return [str(round(float(v), 2)).replace(".0", ""), str(v)]
+            if isinstance(v, str):
+                return [v.lower(), v.replace(" ", ""), "∞", "-∞", "+∞", "infinito"]
+            try:
+                return [str(round(float(v), 2)).replace(".0", ""), str(v)]
+            except (ValueError, TypeError):
+                return [str(v).lower(), str(v), "∞", "-∞", "+∞", "infinito"]
 
         lim_izq_entry = self.entries_defensa["Límite por izquierda"]
         lim_der_entry = self.entries_defensa["Límite por derecha"]
@@ -359,7 +372,11 @@ class PanelLimites(tk.Frame):
 
         if total == 0:
             messagebox.showinfo("Aviso", "Complete al menos un campo.")
+            if self.logger:
+                self.logger.info("PanelLímites: Verificación cancelada, no se completó ningún campo.")
         else:
             messagebox.showinfo("Resultado",
                                 f"Respuestas correctas: {correctos}/{total}\n\n"
                                 f"Verde = correcto  |  Rojo = revisar")
+            if self.logger:
+                self.logger.info(f"PanelLímites: Verificación completada {correctos}/{total}")

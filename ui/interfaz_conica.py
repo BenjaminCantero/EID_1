@@ -25,9 +25,10 @@ NARANJA = "#ff9800"
 
 
 class PanelConica(tk.Frame):
-    def __init__(self, parent, cambiar_tab_callback=None):
+    def __init__(self, parent, cambiar_tab_callback=None, logger=None):
         super().__init__(parent, bg=AZUL_OSCURO)
         self.cambiar_tab = cambiar_tab_callback
+        self.logger = logger
         self.digitos = None
         self.dv = None
         self.A = self.B = self.C = self.D = self.E = 0
@@ -167,7 +168,7 @@ class PanelConica(tk.Frame):
                   bg=VERDE, fg="white", relief="flat",
                   padx=8, pady=3, cursor="hand2").pack(pady=5)
 
-        self._set_defensa_state(False)
+        self._set_defensa_state(True)
 
         # ── Barra de estado ───────────────────────────────────
         self.lbl_estado = tk.Label(self, text="Ingrese un RUT y presione Analizar",
@@ -176,9 +177,14 @@ class PanelConica(tk.Frame):
 
     def _procesar(self):
         rut_str = self.entry_rut.get().strip()
+        if self.logger:
+            self.logger.info(f"PanelCónica: Inicia análisis de RUT '{rut_str}'")
+
         if not rut_str:
             self.lbl_estado.config(text="❗ Debes ingresar un RUT.", fg=ROJO)
             self._limpiar_resultado()
+            if self.logger:
+                self.logger.warning("PanelCónica: RUT vacío ingresado")
             return
 
         es_valido, pasos_val, digitos, dv_calc = validar_rut(rut_str)
@@ -193,6 +199,8 @@ class PanelConica(tk.Frame):
             self.lbl_resumen_ecuacion.config(text="Ecuación: —")
             self.lbl_resumen_tipo.config(text="Tipo: —")
             self._set_defensa_state(False)
+            if self.logger:
+                self.logger.warning(f"PanelCónica: RUT inválido '{rut_str}'")
             return
 
         self.digitos = digitos
@@ -228,6 +236,8 @@ class PanelConica(tk.Frame):
         self.lbl_resumen_ecuacion.config(text=f"Ecuación: {eq}")
         self.lbl_resumen_tipo.config(text=f"Tipo: {tipo}")
         self.lbl_estado.config(text=f"✓ RUT válido — {tipo} detectada", fg=VERDE)
+        if self.logger:
+            self.logger.info(f"PanelCónica: RUT válido '{rut_str}' → tipo '{tipo}'")
 
         # Limpiar campos de defensa
         for e in self.entries_elem.values():
@@ -349,7 +359,7 @@ class PanelConica(tk.Frame):
         self.canvas.delete("all")
         self.canvas.create_text(170, 140, text="Aquí aparecerá la cónica",
                                  font=("Helvetica", 10), fill="#7a92c6")
-        self._set_defensa_state(False)
+        self._set_defensa_state(True)
 
     def _set_defensa_state(self, enabled):
         state = "normal" if enabled else "disabled"
@@ -364,6 +374,8 @@ class PanelConica(tk.Frame):
         self.entry_rut.delete(0, "end")
         self.lbl_estado.config(text="Ingrese un RUT y presione Analizar", fg=GRIS_TEXTO)
         self._limpiar_resultado()
+        if self.logger:
+            self.logger.info("PanelCónica: Limpiar interfaz")
 
     def _verificar_elementos(self):
         if not self.elementos:
@@ -371,32 +383,77 @@ class PanelConica(tk.Frame):
             return
         correctos = 0
         total = 0
+
+        import re
+
+        def parse_numbers(text):
+            tokens = re.findall(r"[-+]?[0-9]*\.?[0-9]+(?:[eE][-+]?[0-9]+)?", text)
+            return [float(t) for t in tokens] if tokens else []
+
+        def flatten_expected(value):
+            if isinstance(value, (tuple, list)):
+                result = []
+                for item in value:
+                    result.extend(flatten_expected(item))
+                return result
+            if isinstance(value, (int, float)):
+                return [float(value)]
+            try:
+                return [float(str(value))]
+            except (ValueError, TypeError):
+                return []
+
+        def matches_expected(value, expected):
+            if isinstance(expected, str):
+                normalized_value = value.lower().replace(" ", "")
+                normalized_expected = expected.lower().replace(" ", "")
+                if normalized_expected in normalized_value:
+                    return True
+            expected_numbers = flatten_expected(expected)
+            input_numbers = parse_numbers(value)
+            if not expected_numbers or not input_numbers:
+                return False
+            for exp_num in expected_numbers:
+                tol = max(0.01, abs(exp_num) * 0.02, 1e-6)
+                if any(abs(exp_num - inp) <= tol for inp in input_numbers):
+                    return True
+            return False
+
         for nombre, entry in self.entries_elem.items():
             val = entry.get().strip()
             if not val:
                 continue
             total += 1
             entry.config(bg="#fff9c4")  # amarillo neutro por defecto
-            # Verificación simple: ver si los números del elemento esperado aparecen
+
             esperado_key = None
             if "Centro" in nombre and "Centro" in self.elementos:
                 esperado_key = "Centro"
-            elif "Vértice" in nombre and "Vértice" in self.elementos:
-                esperado_key = "Vértice"
-            elif "Foco" in nombre and ("Foco" in self.elementos or "Focos" in self.elementos):
-                esperado_key = "Foco" if "Foco" in self.elementos else "Focos"
-            elif "Radio" in nombre and "Radio" in self.elementos:
-                esperado_key = "Radio"
+            elif "Vértice" in nombre:
+                if "Vértices" in self.elementos:
+                    esperado_key = "Vértices"
+                elif "Vértice" in self.elementos:
+                    esperado_key = "Vértice"
+            elif "Foco" in nombre:
+                if "Focos" in self.elementos:
+                    esperado_key = "Focos"
+                elif "Foco" in self.elementos:
+                    esperado_key = "Foco"
+            elif "Radio" in nombre:
+                if "Radio" in self.elementos:
+                    esperado_key = "Radio"
+                elif "a (semi-eje mayor)" in self.elementos and "b (semi-eje menor)" in self.elementos:
+                    esperado_key = "a_b_semi_ejes"
             elif "Directriz" in nombre and "Directriz" in self.elementos:
                 esperado_key = "Directriz"
 
             if esperado_key:
-                esperado = str(self.elementos[esperado_key])
-                num_esp = [s for s in esperado.replace("(", "").replace(")", "")
-                          .replace(",", " ").split() if any(c.isdigit() for c in s)]
-                num_ing = [s for s in val.replace("(", "").replace(")", "")
-                          .replace(",", " ").split() if any(c.isdigit() for c in s)]
-                if num_esp and any(n in val for n in num_esp):
+                if esperado_key == "a_b_semi_ejes":
+                    esperado = (self.elementos["a (semi-eje mayor)"], self.elementos["b (semi-eje menor)"])
+                else:
+                    esperado = self.elementos[esperado_key]
+
+                if matches_expected(val, esperado):
                     entry.config(bg="#c8e6c9")  # verde
                     correctos += 1
                 else:
