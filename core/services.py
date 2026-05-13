@@ -13,6 +13,12 @@ from core.conica import (
 from core.limites import (
     seleccionar_caso, construir_funcion, calcular_limites, evaluar_funcion
 )
+from core.exceptions import RUTInvalidoError, ConicaInvalidaError, LimiteInvalidoError
+from core.validators import (
+    validar_rut_str, validar_digitos, validar_coeficientes_conica,
+    validar_punto_discontinuidad, validar_caso_tipo, validar_tramos,
+    validar_tabla_valores
+)
 
 
 class ConicaAnalysis:
@@ -162,8 +168,20 @@ def analizar_conica(rut_str):
         
     Returns:
         ConicaAnalysis: Objeto con todo el análisis estructurado
+        
+    Raises:
+        RUTInvalidoError: Si el RUT no es válido
+        ConicaInvalidaError: Si los coeficientes son inválidos
     """
     resultado = ConicaAnalysis()
+    
+    # ─────────────────────────────────────────────────────
+    # 0. Validar formato básico del RUT
+    # ─────────────────────────────────────────────────────
+    try:
+        rut_str = validar_rut_str(rut_str)
+    except RUTInvalidoError:
+        raise
     
     # ─────────────────────────────────────────────────────
     # 1. Validar RUT
@@ -177,7 +195,17 @@ def analizar_conica(rut_str):
     
     # Si el RUT es inválido, retornar aquí
     if not es_valido:
-        return resultado
+        raise RUTInvalidoError(
+            mensaje="El RUT ingresado no pasó validación con módulo 11",
+            rut_ingresado=rut_str,
+            detalles=pasos_val[-3:] if len(pasos_val) > 3 else pasos_val
+        )
+    
+    # Validar estructura de dígitos
+    try:
+        digitos, dv_calc = validar_digitos(digitos, dv_calc)
+    except RUTInvalidoError:
+        raise
     
     # Formatear RUT (simplificado para display)
     cuerpo_8 = "".join(str(d) for d in digitos)
@@ -195,6 +223,12 @@ def analizar_conica(rut_str):
     resultado.E = E
     resultado.pasos_coeficientes = pasos_coef
     resultado.ajustes = ajustes
+    
+    # Validar coeficientes
+    try:
+        validar_coeficientes_conica(A, B, C, D, E)
+    except ConicaInvalidaError:
+        raise
     
     # ─────────────────────────────────────────────────────
     # 3. Clasificar cónica
@@ -231,8 +265,20 @@ def analizar_limites(rut_str):
         
     Returns:
         LimitesAnalysis: Objeto con todo el análisis estructurado
+        
+    Raises:
+        RUTInvalidoError: Si el RUT no es válido
+        LimiteInvalidoError: Si hay problemas en el cálculo de límites
     """
     resultado = LimitesAnalysis()
+    
+    # ─────────────────────────────────────────────────────
+    # 0. Validar formato básico del RUT
+    # ─────────────────────────────────────────────────────
+    try:
+        rut_str = validar_rut_str(rut_str)
+    except RUTInvalidoError:
+        raise
     
     # ─────────────────────────────────────────────────────
     # 1. Validar RUT
@@ -246,7 +292,17 @@ def analizar_limites(rut_str):
     
     # Si el RUT es inválido, retornar aquí
     if not es_valido:
-        return resultado
+        raise RUTInvalidoError(
+            mensaje="El RUT ingresado no pasó validación con módulo 11",
+            rut_ingresado=rut_str,
+            detalles=pasos_val[-3:] if len(pasos_val) > 3 else pasos_val
+        )
+    
+    # Validar estructura de dígitos
+    try:
+        digitos, dv_calc = validar_digitos(digitos, dv_calc)
+    except RUTInvalidoError:
+        raise
     
     # Formatear RUT (simplificado para display)
     cuerpo_8 = "".join(str(d) for d in digitos)
@@ -256,7 +312,20 @@ def analizar_limites(rut_str):
     # 2. Generar la función por tramos
     # ─────────────────────────────────────────────────────
     a = digitos[2]  # a = d3
+    
+    # Validar punto de discontinuidad
+    try:
+        a = validar_punto_discontinuidad(a, digitos)
+    except LimiteInvalidoError:
+        raise
+    
     caso, razon = seleccionar_caso(digitos[7])  # d8
+    
+    # Validar tipo de caso
+    try:
+        caso = validar_caso_tipo(caso)
+    except LimiteInvalidoError:
+        raise
     
     resultado.a = a
     resultado.caso_tipo = caso
@@ -264,12 +333,27 @@ def analizar_limites(rut_str):
     
     desc, tramos = construir_funcion(caso, a, digitos)
     resultado.descripcion_funcion = desc
+    
+    # Validar estructura de tramos
+    try:
+        tramos = validar_tramos(tramos)
+    except LimiteInvalidoError:
+        raise
+    
     resultado.tramos_info = tramos
     
     # ─────────────────────────────────────────────────────
     # 3. Calcular límites y análisis de continuidad
     # ─────────────────────────────────────────────────────
-    analisis_limites = calcular_limites(tramos)
+    try:
+        analisis_limites = calcular_limites(tramos)
+    except Exception as e:
+        raise LimiteInvalidoError(
+            mensaje="Error calculando límites",
+            punto_a=a,
+            caso_tipo=caso,
+            razon=str(e)
+        )
     
     resultado.lim_izquierda = analisis_limites.get("lim_izq")
     resultado.lim_derecha = analisis_limites.get("lim_der")
@@ -283,7 +367,12 @@ def analizar_limites(rut_str):
     # ─────────────────────────────────────────────────────
     # 4. Generar tabla de valores
     # ─────────────────────────────────────────────────────
-    resultado.tabla_valores = _generar_tabla_valores(tramos, a)
+    try:
+        tabla = _generar_tabla_valores(tramos, a)
+        tabla = validar_tabla_valores(tabla)
+        resultado.tabla_valores = tabla
+    except LimiteInvalidoError:
+        raise
     
     return resultado
 
