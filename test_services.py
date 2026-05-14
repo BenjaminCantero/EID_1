@@ -10,11 +10,11 @@ from core.exceptions import RUTInvalidoError, ConicaInvalidaError, LimiteInvalid
 def test_rut_valido():
     """Prueba con un RUT válido"""
     print("\n" + "="*70)
-    print("TEST 1: RUT VÁLIDO (12.345.678-9)")
+    print("TEST 1: RUT VÁLIDO (12.345.678-5)")
     print("="*70)
     
     try:
-        resultado = analizar_conica("12.345.678-9")
+        resultado = analizar_conica("12.345.678-5")
         print(f"✓ Cónica analizada exitosamente")
         print(f"  RUT formateado: {resultado.rut_formateado}")
         print(f"  Tipo: {resultado.tipo_conica}")
@@ -65,6 +65,19 @@ def test_rut_vacio():
         print(f"  {e}")
 
 
+def test_detalle_forma_canonica():
+    """Prueba que la forma canónica muestra pasos algebraicos y reversión."""
+    print("\n" + "="*70)
+    print("TEST 4.1: DETALLE DE FORMA CANÓNICA E INVERSA")
+    print("="*70)
+    resultado = analizar_conica("12.345.678-5")
+    assert resultado.ecuacion_canonica != ""
+    assert any("Nota: no hay término xy" in paso for paso in resultado.pasos_canonica)
+    assert any("Procedimiento inverso" in paso for paso in resultado.pasos_canonica)
+    assert any("Forma canónica" in paso for paso in resultado.pasos_canonica)
+    print("✓ Detalle de forma canónica e inversa generado correctamente")
+
+
 def test_limites_valido():
     """Prueba análisis de límites con RUT válido"""
     print("\n" + "="*70)
@@ -72,7 +85,7 @@ def test_limites_valido():
     print("="*70)
     
     try:
-        resultado = analizar_limites("12.345.678-9")
+        resultado = analizar_limites("12.345.678-5")
         print(f"✓ Límites analizados exitosamente")
         print(f"  RUT: {resultado.rut_formateado}")
         print(f"  Punto a: {resultado.a}")
@@ -109,6 +122,7 @@ def main():
     test_rut_invalido_formato()
     test_rut_invalido_digito()
     test_rut_vacio()
+    test_detalle_forma_canonica()
     test_limites_valido()
     test_limites_invalido()
     

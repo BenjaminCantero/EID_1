@@ -156,32 +156,41 @@ def _canonica_circunferencia(A, B, C, D, E):
     pasos.append("=== Circunferencia: A = B ===")
     pasos.append(f"Ecuación general: {ecuacion_str(A, B, C, D, E)}")
     pasos.append("")
-    pasos.append("Paso 1: Dividir toda la ecuación por A para igualar coeficientes a 1:")
+    pasos.append("Nota: no hay término xy, por lo tanto no se requiere rotación de ejes.")
+    pasos.append("Paso 1: Dividir toda la ecuación por A para normalizar los coeficientes:")
     a2 = A
     c2 = C / a2
     d2 = D / a2
     e2 = E / a2
     pasos.append(f"  x² + y² + ({c2:.4g})x + ({d2:.4g})y + {e2:.4g} = 0")
     pasos.append("")
-    pasos.append("Paso 2: Completar el cuadrado en x:")
+    pasos.append("Paso 2: Agrupar términos y pasar la constante al otro lado:")
+    pasos.append(f"  x² + ({c2:.4g})x + y² + ({d2:.4g})y = {-e2:.4g}")
+    pasos.append("")
+    pasos.append("Paso 3: Completar el cuadrado en x:")
     h, add_x = completar_cuadrado(1, c2)
     pasos.append(f"  x² + ({c2:.4g})x = (x + {c2/2:.4g})² - ({c2/2:.4g})²")
-    pasos.append(f"  h = {h:.4g},  término adicional = {add_x:.4g}")
+    pasos.append(f"  Término agregado a LHS: ({c2/2:.4g})² = {(c2/2)**2:.4g}")
+    pasos.append(f"  Término equivalente en RHS: +{(c2/2)**2:.4g}")
+    pasos.append(f"  h = {h:.4g}")
     pasos.append("")
-    pasos.append("Paso 3: Completar el cuadrado en y:")
+    pasos.append("Paso 4: Completar el cuadrado en y:")
     k, add_y = completar_cuadrado(1, d2)
     pasos.append(f"  y² + ({d2:.4g})y = (y + {d2/2:.4g})² - ({d2/2:.4g})²")
-    pasos.append(f"  k = {k:.4g},  término adicional = {add_y:.4g}")
+    pasos.append(f"  Término agregado a LHS: ({d2/2:.4g})² = {(d2/2)**2:.4g}")
+    pasos.append(f"  Término equivalente en RHS: +{(d2/2)**2:.4g}")
+    pasos.append(f"  k = {k:.4g}")
     pasos.append("")
     r2 = -e2 - add_x - add_y
-    pasos.append(f"Paso 4: Reescribir:")
+    pasos.append("Paso 5: Reescribir con los cuadrados completos y el término constante al otro lado:")
     pasos.append(f"  (x - ({h:.4g}))² + (y - ({k:.4g}))² = {r2:.4g}")
-    r = raiz_cuadrada_manual(r2) if r2 >= 0 else None
+    pasos.append(f"  Centro de traslación: (h, k) = ({h:.4g}, {k:.4g})")
 
-    if r is None or r2 <= 0:
-        pasos.append("  ⚠ r² ≤ 0: la cónica es imaginaria o puntual.")
+    if r2 < 0:
+        pasos.append("  ⚠ r² < 0: la cónica no tiene solución real en el plano real.")
         canonica = f"(x - {h:.4g})² + (y - {k:.4g})² = {r2:.4g}  [sin solución real]"
     else:
+        r = raiz_cuadrada_manual(r2)
         pasos.append(f"  Radio r = √{r2:.4g} ≈ {r:.4f}")
         canonica = f"(x - {h:.4g})² + (y - {k:.4g})² = {r2:.4g}"
         elementos["Centro"] = (round(h, 4), round(k, 4))
@@ -189,10 +198,14 @@ def _canonica_circunferencia(A, B, C, D, E):
 
     pasos.append("")
     pasos.append("=== Procedimiento inverso (canónica → general) ===")
+    pasos.append(f"  Partiendo de: (x - {h:.4g})² + (y - {k:.4g})² = {r2:.4g}")
     pasos.append(f"  Expandir (x - {h:.4g})² = x² - {2*h:.4g}x + {h**2:.4g}")
     pasos.append(f"  Expandir (y - {k:.4g})² = y² - {2*k:.4g}y + {k**2:.4g}")
     pasos.append(f"  Sumar y pasar {r2:.4g} al otro lado:")
     pasos.append(f"  x² + y² - {2*h:.4g}x - {2*k:.4g}y + {h**2 + k**2 - r2:.4g} = 0")
+    if abs(A - 1.0) > 1e-9:
+        pasos.append(f"  Multiplicar toda la ecuación por A = {A:.4g} para recuperar la forma general original:")
+        pasos.append(f"  {A:.4g}x² + {A:.4g}y² - {2*A*h:.4g}x - {2*A*k:.4g}y + {A*(h**2 + k**2 - r2):.4g} = 0")
 
     return pasos, elementos, canonica
 
@@ -203,19 +216,26 @@ def _canonica_elipse(A, B, C, D, E):
     pasos.append("=== Elipse: A ≠ B, mismo signo ===")
     pasos.append(f"Ecuación general: {ecuacion_str(A, B, C, D, E)}")
     pasos.append("")
-    pasos.append("Paso 1: Agrupar términos en x e y:")
-    pasos.append(f"  {A:.4g}(x² + {C/A:.4g}x) + {B:.4g}(y² + {D/B:.4g}y) + {E:.4g} = 0")
+    pasos.append("Nota: no hay término xy, por lo tanto no se requiere rotación de ejes.")
+    pasos.append("Paso 1: Agrupar términos en x e y y pasar la constante al otro lado:")
+    pasos.append(f"  {A:.4g}(x² + {C/A:.4g}x) + {B:.4g}(y² + {D/B:.4g}y) = {-E:.4g}")
     pasos.append("")
     pasos.append("Paso 2: Completar el cuadrado en x:")
     h, add_x = completar_cuadrado(A, C)
-    pasos.append(f"  {A:.4g}(x - {h:.4g})²,  término adicional = {add_x:.4g}")
+    pasos.append(f"  {A:.4g}(x² + {C/A:.4g}x + ({C/(2*A):.4g})²) = {A:.4g}(x - {h:.4g})²")
+    pasos.append(f"  Término agregado a la izquierda: {A:.4g} · ({C/(2*A):.4g})² = {A * (C/(2*A))**2:.4g}")
+    pasos.append(f"  Ajuste en el lado derecho: +{A * (C/(2*A))**2:.4g}")
+    pasos.append(f"  h = {h:.4g}")
     pasos.append("")
     pasos.append("Paso 3: Completar el cuadrado en y:")
     k, add_y = completar_cuadrado(B, D)
-    pasos.append(f"  {B:.4g}(y - {k:.4g})²,  término adicional = {add_y:.4g}")
+    pasos.append(f"  {B:.4g}(y² + {D/B:.4g}y + ({D/(2*B):.4g})²) = {B:.4g}(y - {k:.4g})²")
+    pasos.append(f"  Término agregado a la izquierda: {B:.4g} · ({D/(2*B):.4g})² = {B * (D/(2*B))**2:.4g}")
+    pasos.append(f"  Ajuste en el lado derecho: +{B * (D/(2*B))**2:.4g}")
+    pasos.append(f"  k = {k:.4g}")
     pasos.append("")
     constante = -E - add_x - add_y
-    pasos.append(f"Paso 4: Pasar constante al lado derecho:")
+    pasos.append("Paso 4: Reescribir en términos de cuadrados completos:")
     pasos.append(f"  {A:.4g}(x - {h:.4g})² + {B:.4g}(y - {k:.4g})² = {constante:.4g}")
 
     if abs(constante) < 1e-9:
@@ -224,7 +244,7 @@ def _canonica_elipse(A, B, C, D, E):
         return pasos, elementos, canonica
 
     pasos.append("")
-    pasos.append("Paso 5: Dividir para obtener forma estándar (x-h)²/a² + (y-k)²/b² = 1:")
+    pasos.append("Paso 5: Dividir para obtener la forma estándar con RHS = 1:")
     a2 = constante / A
     b2 = constante / B
     pasos.append(f"  a² = {constante:.4g} / {A:.4g} = {a2:.4g}")
@@ -248,9 +268,12 @@ def _canonica_elipse(A, B, C, D, E):
 
     pasos.append("")
     pasos.append("=== Procedimiento inverso (canónica → general) ===")
-    pasos.append(f"  Expandir (x-{h:.4g})²/{a2:.4g}: multiplica por {A:.4g}")
-    pasos.append(f"  Expandir (y-{k:.4g})²/{b2:.4g}: multiplica por {B:.4g}")
-    pasos.append(f"  Pasar 1 al otro lado y expandir para obtener la forma general.")
+    pasos.append(f"  Partiendo de: {canonica}")
+    pasos.append(f"  Multiplicar por {constante:.4g} para recuperar la forma con coeficientes {A:.4g} y {B:.4g}:")
+    pasos.append(f"  {A:.4g}(x - {h:.4g})² + {B:.4g}(y - {k:.4g})² = {constante:.4g}")
+    pasos.append(f"  Expandir: {A:.4g}(x² - {2*h:.4g}x + {h**2:.4g}) + {B:.4g}(y² - {2*k:.4g}y + {k**2:.4g}) = {constante:.4g}")
+    pasos.append("  Recolectar términos y pasar todo al lado izquierdo:")
+    pasos.append(f"  {A:.4g}x² + {B:.4g}y² - {2*A*h:.4g}x - {2*B*k:.4g}y + {A*h**2 + B*k**2 - constante:.4g} = 0")
 
     return pasos, elementos, canonica
 
@@ -261,20 +284,34 @@ def _canonica_hiperbola(A, B, C, D, E):
     pasos.append("=== Hipérbola: A y B con signos opuestos ===")
     pasos.append(f"Ecuación general: {ecuacion_str(A, B, C, D, E)}")
     pasos.append("")
-    pasos.append("Paso 1: Agrupar y completar cuadrados:")
+    pasos.append("Nota: no hay término xy, por lo tanto no se requiere rotación de ejes.")
+    pasos.append("Paso 1: Agrupar términos en x e y y pasar la constante al otro lado:")
+    pasos.append(f"  {A:.4g}(x² + {C/A:.4g}x) + {B:.4g}(y² + {D/B:.4g}y) = {-E:.4g}")
+    pasos.append("")
+    pasos.append("Paso 2: Completar el cuadrado en x:")
     h, add_x = completar_cuadrado(A, C)
+    pasos.append(f"  {A:.4g}(x² + {C/A:.4g}x + ({C/(2*A):.4g})²) = {A:.4g}(x - {h:.4g})²")
+    pasos.append(f"  Término agregado a la izquierda: {A:.4g} · ({C/(2*A):.4g})² = {A * (C/(2*A))**2:.4g}")
+    pasos.append(f"  Ajuste en el lado derecho: +{A * (C/(2*A))**2:.4g}")
+    pasos.append(f"  h = {h:.4g}")
+    pasos.append("")
+    pasos.append("Paso 3: Completar el cuadrado en y:")
     k, add_y = completar_cuadrado(B, D)
-    pasos.append(f"  Completar en x: h = {h:.4g}, adicional = {add_x:.4g}")
-    pasos.append(f"  Completar en y: k = {k:.4g}, adicional = {add_y:.4g}")
+    pasos.append(f"  {B:.4g}(y² + {D/B:.4g}y + ({D/(2*B):.4g})²) = {B:.4g}(y - {k:.4g})²")
+    pasos.append(f"  Término agregado a la izquierda: {B:.4g} · ({D/(2*B):.4g})² = {B * (D/(2*B))**2:.4g}")
+    pasos.append(f"  Ajuste en el lado derecho: +{B * (D/(2*B))**2:.4g}")
+    pasos.append(f"  k = {k:.4g}")
+    pasos.append("")
     constante = -E - add_x - add_y
-    pasos.append(f"  {A:.4g}(x-{h:.4g})² + {B:.4g}(y-{k:.4g})² = {constante:.4g}")
+    pasos.append(f"Paso 4: Reescribir con cuadrados completos:")
+    pasos.append(f"  {A:.4g}(x - {h:.4g})² + {B:.4g}(y - {k:.4g})² = {constante:.4g}")
 
     if abs(constante) < 1e-9:
         canonica = f"{A:.4g}(x-{h:.4g})² + {B:.4g}(y-{k:.4g})² = 0  [hipérbola degenerada]"
         return pasos, elementos, canonica
 
     pasos.append("")
-    pasos.append("Paso 2: Dividir por la constante para forma estándar:")
+    pasos.append("Paso 5: Dividir por la constante para obtener la forma estándar:")
     a2 = constante / A
     b2 = constante / B
     pasos.append(f"  a² = {constante:.4g}/{A:.4g} = {a2:.4g}")
@@ -303,7 +340,12 @@ def _canonica_hiperbola(A, B, C, D, E):
 
     pasos.append("")
     pasos.append("=== Procedimiento inverso (canónica → general) ===")
-    pasos.append(f"  Expandir cuadrados, multiplicar cruzado y pasar todo al lado izquierdo.")
+    pasos.append(f"  Partiendo de: {canonica}")
+    pasos.append(f"  Multiplicar toda la ecuación por la constante original = {constante:.4g}:")
+    pasos.append(f"  {A:.4g}(x - {h:.4g})² + {B:.4g}(y - {k:.4g})² = {constante:.4g}")
+    pasos.append(f"  Expandir: {A:.4g}(x² - {2*h:.4g}x + {h**2:.4g}) + {B:.4g}(y² - {2*k:.4g}y + {k**2:.4g}) = {constante:.4g}")
+    pasos.append("  Recolectar términos y pasar todo al lado izquierdo:")
+    pasos.append(f"  {A:.4g}x² + {B:.4g}y² - {2*A*h:.4g}x - {2*B*k:.4g}y + {A*h**2 + B*k**2 - constante:.4g} = 0")
 
     return pasos, elementos, canonica
 
@@ -317,14 +359,16 @@ def _canonica_parabola(A, B, C, D, E):
         pasos.append("=== Parábola de eje vertical (B = 0) ===")
         pasos.append(f"Ecuación general: {ecuacion_str(A, B, C, D, E)}")
         pasos.append("")
+        pasos.append("Nota: no hay término xy, por lo tanto no se requiere rotación de ejes.")
         pasos.append("Paso 1: Completar el cuadrado en x:")
         h, add_x = completar_cuadrado(A, C)
-        pasos.append(f"  {A:.4g}(x - {h:.4g})²,  adicional = {add_x:.4g}")
+        pasos.append(f"  {A:.4g}(x² + {C/A:.4g}x + ({C/(2*A):.4g})²) = {A:.4g}(x - {h:.4g})²")
+        pasos.append(f"  Término agregado: {A:.4g} · ({C/(2*A):.4g})² = {A * (C/(2*A))**2:.4g}")
         pasos.append("")
-        pasos.append("Paso 2: Despejar y:")
-        # A(x-h)² + add_x + Dy + E = 0  →  Dy = -A(x-h)² - add_x - E
+        pasos.append("Paso 2: Reescribir y despejar y:")
         const = -add_x - E
-        pasos.append(f"  {D:.4g}y = -{A:.4g}(x - {h:.4g})² + {const:.4g}")
+        pasos.append(f"  {A:.4g}(x - {h:.4g})² + {add_x:.4g} + {D:.4g}y + {E:.4g} = 0")
+        pasos.append(f"  {D:.4g}y = -{A:.4g}(x - {h:.4g})² - {add_x:.4g} - {E:.4g}")
         if abs(D) < 1e-9:
             pasos.append("  ⚠ D = 0: ecuación sin término y, posible parábola degenerada.")
             canonica = "Degenerada"
@@ -344,13 +388,15 @@ def _canonica_parabola(A, B, C, D, E):
         pasos.append("=== Parábola de eje horizontal (A = 0) ===")
         pasos.append(f"Ecuación general: {ecuacion_str(A, B, C, D, E)}")
         pasos.append("")
+        pasos.append("Nota: no hay término xy, por lo tanto no se requiere rotación de ejes.")
         pasos.append("Paso 1: Completar el cuadrado en y:")
         k, add_y = completar_cuadrado(B, D)
-        pasos.append(f"  {B:.4g}(y - {k:.4g})²,  adicional = {add_y:.4g}")
+        pasos.append(f"  {B:.4g}(y² + {D/B:.4g}y + ({D/(2*B):.4g})²) = {B:.4g}(y - {k:.4g})²")
+        pasos.append(f"  Término agregado: {B:.4g} · ({D/(2*B):.4g})² = {B * (D/(2*B))**2:.4g}")
         pasos.append("")
-        pasos.append("Paso 2: Despejar x:")
+        pasos.append("Paso 2: Reescribir y despejar x:")
         const = -add_y - E
-        pasos.append(f"  {C:.4g}x = -{B:.4g}(y - {k:.4g})² + {const:.4g}")
+        pasos.append(f"  {C:.4g}x = -{B:.4g}(y - {k:.4g})² - {add_y:.4g} - {E:.4g}")
         if abs(C) < 1e-9:
             pasos.append("  ⚠ C = 0: ecuación sin término x, posible parábola degenerada.")
             canonica = "Degenerada"
@@ -368,7 +414,15 @@ def _canonica_parabola(A, B, C, D, E):
 
     pasos.append("")
     pasos.append("=== Procedimiento inverso (canónica → general) ===")
-    pasos.append("  Expandir el cuadrado, distribuir coeficientes y reordenar todos")
-    pasos.append("  los términos al lado izquierdo igualando a 0.")
+    if abs(B) < 1e-9:
+        pasos.append(f"  Partiendo de: {canonica}")
+        pasos.append(f"  Expandir (x - {h:.4g})² = x² - {2*h:.4g}x + {h**2:.4g}")
+        pasos.append(f"  Multiplicar por {p_coef:.4g} y sumar {q:.4g} para recuperar la forma general en y.")
+        pasos.append(f"  Resultado: {A:.4g}x² + {C:.4g}x + {D:.4g}y + {E:.4g} = 0")
+    else:
+        pasos.append(f"  Partiendo de: {canonica}")
+        pasos.append(f"  Expandir (y - {k:.4g})² = y² - {2*k:.4g}y + {k**2:.4g}")
+        pasos.append(f"  Multiplicar por {p_coef:.4g} y sumar {q:.4g} para recuperar la forma general en x.")
+        pasos.append(f"  Resultado: {A:.4g}x + {B:.4g}y² + {D:.4g}y + {E:.4g} = 0")
 
     return pasos, elementos, canonica
