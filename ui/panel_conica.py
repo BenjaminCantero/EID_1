@@ -97,8 +97,8 @@ class PanelConica(tk.Frame):
                  font=("Helvetica", 10, "bold"),
                  bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w")
 
-        self.canvas = tk.Canvas(right, width=340, height=280,
-                                 bg="#0d1b2e", relief="flat", bd=2,
+        self.canvas = tk.Canvas(right, width=380, height=320,
+                                 bg="#051020", relief="flat", bd=2,
                                  highlightthickness=1,
                                  highlightbackground=AZUL_CLARO)
         self.canvas.pack()
@@ -236,38 +236,56 @@ class PanelConica(tk.Frame):
 
     def _graficar(self, A, B, C, D, E, tipo, elementos):
         self.canvas.delete("all")
-        w, h = 340, 280
+        # Canvas más grande para mejor visibilidad
+        w, h = self.canvas.winfo_width(), self.canvas.winfo_height()
+        if w <= 1:  # Canvas no ha sido renderizado aún
+            w, h = 380, 320
+        
         cx, cy = w // 2, h // 2
-        escala = 22
+        escala = 24  # Escala ligeramente mayor
 
-        # Ejes
-        self.canvas.create_line(10, cy, w - 10, cy, fill="#3a5a8a", width=1)
-        self.canvas.create_line(cx, 10, cx, h - 10, fill="#3a5a8a", width=1)
+        # Fondo más oscuro para contraste
+        self.canvas.create_rectangle(0, 0, w, h, fill="#051020", outline="")
 
-        # Marcas en ejes
-        for i in range(-7, 8):
+        # Ejes con mejor visibilidad
+        self.canvas.create_line(10, cy, w - 10, cy, fill="#4a7aaa", width=1.5)
+        self.canvas.create_line(cx, 10, cx, h - 10, fill="#4a7aaa", width=1.5)
+
+        # Grid sutil para mejor orientación
+        for i in range(-8, 9):
             if i == 0:
                 continue
             px = cx + i * escala
             py = cy + i * escala
-            self.canvas.create_line(px, cy - 3, px, cy + 3, fill="#3a5a8a")
-            self.canvas.create_line(cx - 3, py, cx + 3, py, fill="#3a5a8a")
-            if i % 2 == 0:
-                self.canvas.create_text(px, cy + 10, text=str(i),
-                                         font=("Courier", 6), fill="#5a7aaa")
-                self.canvas.create_text(cx - 12, py, text=str(-i),
-                                         font=("Courier", 6), fill="#5a7aaa")
+            # Grid de fondo muy sutil
+            self.canvas.create_line(px, 10, px, h - 10, fill="#1a2f4a", width=0.5)
+            self.canvas.create_line(10, py, w - 10, py, fill="#1a2f4a", width=0.5)
 
-        self.canvas.create_text(w - 15, cy - 10, text="x",
-                                 font=("Courier", 8, "bold"), fill="#5a7aaa")
-        self.canvas.create_text(cx + 8, 15, text="y",
-                                 font=("Courier", 8, "bold"), fill="#5a7aaa")
+        # Marcas en ejes con mejor contraste
+        for i in range(-8, 9):
+            if i == 0:
+                continue
+            px = cx + i * escala
+            py = cy + i * escala
+            # Marcas más largas
+            self.canvas.create_line(px, cy - 5, px, cy + 5, fill="#6a9aaa", width=1)
+            self.canvas.create_line(cx - 5, py, cx + 5, py, fill="#6a9aaa", width=1)
+            if i % 2 == 0:
+                self.canvas.create_text(px, cy + 14, text=str(i),
+                                         font=("Courier", 7, "bold"), fill="#8aaaaa")
+                self.canvas.create_text(cx - 14, py, text=str(-i),
+                                         font=("Courier", 7, "bold"), fill="#8aaaaa")
+
+        self.canvas.create_text(w - 12, cy - 15, text="x",
+                                 font=("Courier", 10, "bold"), fill="#6a9aaa")
+        self.canvas.create_text(cx + 12, 12, text="y",
+                                 font=("Courier", 10, "bold"), fill="#6a9aaa")
 
         # Obtener puntos
-        puntos = puntos_grafica(A, B, C, D, E, tipo, n=400)
+        puntos = puntos_grafica(A, B, C, D, E, tipo, n=500)  # Más puntos
         if not puntos:
             self.canvas.create_text(cx, cy, text="Sin gráfica disponible",
-                                     font=("Helvetica", 10), fill="#888")
+                                     font=("Helvetica", 11), fill="#6a8aaa")
             return
 
         def mundo_pantalla(x, y):
@@ -275,61 +293,112 @@ class PanelConica(tk.Frame):
             py = cy - y * escala
             return px, py
 
-        color_conica = AMARILLO
+        # Colores mejorados según tipo de cónica
+        colores_tipo = {
+            "Circunferencia": "#00ff88",    # Verde brillante
+            "Elipse": "#00ddff",             # Cian brillante
+            "Hipérbola": "#ff6b9d",          # Rosa/magenta
+            "Parábola": "#ffdd44"            # Amarillo brillante
+        }
+        color_conica = colores_tipo.get(tipo, AMARILLO)
 
-        # Detectar si hay ramas de hipérbola
+        # Dibujar cónica con mayor grosor y suavidad
         if puntos and isinstance(puntos[0], tuple) and len(puntos[0]) == 2 and puntos[0][0] == "rama":
+            # Hipérbola con dos ramas
             for _, rama_pts in puntos:
                 pts_pantalla = [mundo_pantalla(x, y) for x, y in rama_pts]
+                # Dibujar con múltiples líneas para efecto de grosor
                 for i in range(len(pts_pantalla) - 1):
                     x1, y1 = pts_pantalla[i]
                     x2, y2 = pts_pantalla[i + 1]
-                    if (0 <= x1 <= w and 0 <= y1 <= h and
-                            0 <= x2 <= w and 0 <= y2 <= h):
+                    # Validar que los puntos están dentro del canvas
+                    if self._punto_valido(x1, y1, w, h) and self._punto_valido(x2, y2, w, h):
                         self.canvas.create_line(x1, y1, x2, y2,
-                                                 fill=color_conica, width=2)
+                                                 fill=color_conica, width=3, capstyle="round", joinstyle="round")
         else:
+            # Circunferencia, Elipse o Parábola
             pts_pantalla = [mundo_pantalla(x, y) for x, y in puntos]
             for i in range(len(pts_pantalla) - 1):
                 x1, y1 = pts_pantalla[i]
                 x2, y2 = pts_pantalla[i + 1]
-                if (0 <= x1 <= w and 0 <= y1 <= h and
-                        0 <= x2 <= w and 0 <= y2 <= h):
+                if self._punto_valido(x1, y1, w, h) and self._punto_valido(x2, y2, w, h):
                     self.canvas.create_line(x1, y1, x2, y2,
-                                             fill=color_conica, width=2)
+                                             fill=color_conica, width=3, capstyle="round", joinstyle="round")
 
-        # Marcar elementos geométricos
+        # Marcar elementos geométricos con mejor visibilidad
+        self._dibujar_elementos(elementos, mundo_pantalla, w, h)
+
+        # Leyenda mejorada
+        self.canvas.create_text(w // 2, h - 8, text=tipo,
+                                 font=("Helvetica", 10, "bold"), fill=color_conica)
+
+    def _punto_valido(self, x, y, w, h):
+        """Verifica si un punto está dentro del canvas con margen."""
+        margen = 5
+        return -margen <= x <= w + margen and -margen <= y <= h + margen
+
+    def _dibujar_elementos(self, elementos, mundo_pantalla, w, h):
+        """Dibuja los elementos geométricos con mejor visibilidad."""
+        # Centro (punto de referencia)
         if "Centro" in elementos:
             hx, ky = elementos["Centro"]
             px, py = mundo_pantalla(hx, ky)
-            self.canvas.create_oval(px - 4, py - 4, px + 4, py + 4,
-                                     fill=ROJO, outline="white")
-            self.canvas.create_text(px + 10, py - 10,
-                                     text=f"C({hx},{ky})",
-                                     font=("Courier", 7), fill=ROJO)
+            # Círculo relleno más grande
+            self.canvas.create_oval(px - 6, py - 6, px + 6, py + 6,
+                                     fill=ROJO, outline=BLANCO, width=2)
+            # Etiqueta con fondo
+            self.canvas.create_text(px + 15, py - 12,
+                                     text=f"Centro",
+                                     font=("Courier", 8, "bold"), fill=ROJO,
+                                     anchor="w")
 
+        # Foco único (para parábola)
         if "Foco" in elementos:
             fx, fy = elementos["Foco"]
             px, py = mundo_pantalla(fx, fy)
-            self.canvas.create_oval(px - 3, py - 3, px + 3, py + 3,
-                                     fill=NARANJA, outline="white")
+            self.canvas.create_oval(px - 5, py - 5, px + 5, py + 5,
+                                     fill=NARANJA, outline=BLANCO, width=2)
+            self.canvas.create_text(px + 12, py - 8,
+                                     text="F",
+                                     font=("Courier", 8, "bold"), fill=NARANJA,
+                                     anchor="w")
 
+        # Focos múltiples (para elipse e hipérbola)
         if "Focos" in elementos:
-            for foco in elementos["Focos"]:
+            for i, foco in enumerate(elementos["Focos"]):
                 fx, fy = foco
                 px, py = mundo_pantalla(fx, fy)
-                self.canvas.create_oval(px - 3, py - 3, px + 3, py + 3,
-                                         fill=NARANJA, outline="white")
+                self.canvas.create_oval(px - 5, py - 5, px + 5, py + 5,
+                                         fill=NARANJA, outline=BLANCO, width=2)
+                label = f"F{i+1}"
+                self.canvas.create_text(px + 12, py - 8,
+                                         text=label,
+                                         font=("Courier", 8, "bold"), fill=NARANJA,
+                                         anchor="w")
 
+        # Vértices
         if "Vértice" in elementos:
             vx, vy = elementos["Vértice"]
             px, py = mundo_pantalla(vx, vy)
-            self.canvas.create_rectangle(px - 4, py - 4, px + 4, py + 4,
-                                          fill=VERDE, outline="white")
+            # Cuadrado más grande
+            self.canvas.create_rectangle(px - 6, py - 6, px + 6, py + 6,
+                                          fill=VERDE, outline=BLANCO, width=2)
+            self.canvas.create_text(px + 14, py - 12,
+                                     text="V",
+                                     font=("Courier", 8, "bold"), fill=VERDE,
+                                     anchor="w")
 
-        # Leyenda
-        self.canvas.create_text(cx, h - 12, text=tipo,
-                                 font=("Helvetica", 8, "bold"), fill=AMARILLO)
+        if "Vértices" in elementos:
+            for i, vertice in enumerate(elementos["Vértices"]):
+                vx, vy = vertice
+                px, py = mundo_pantalla(vx, vy)
+                self.canvas.create_rectangle(px - 6, py - 6, px + 6, py + 6,
+                                              fill=VERDE, outline=BLANCO, width=2)
+                label = f"V{i+1}"
+                self.canvas.create_text(px + 14, py - 12,
+                                         text=label,
+                                         font=("Courier", 8, "bold"), fill=VERDE,
+                                         anchor="w")
 
     def _mostrar_texto(self, texto):
         self.txt_pasos.config(state="normal")
@@ -344,8 +413,13 @@ class PanelConica(tk.Frame):
         self.lbl_resumen_tipo.config(text="Tipo: —")
         self._mostrar_texto("")
         self.canvas.delete("all")
-        self.canvas.create_text(170, 140, text="Aquí aparecerá la cónica",
-                                 font=("Helvetica", 10), fill="#7a92c6")
+        # Canvas con fondo oscuro
+        self.canvas.create_rectangle(0, 0, self.canvas.winfo_width(), 
+                                      self.canvas.winfo_height(), fill="#051020")
+        self.canvas.create_text(self.canvas.winfo_width() // 2, 
+                                 self.canvas.winfo_height() // 2,
+                                 text="Aquí aparecerá la cónica",
+                                 font=("Helvetica", 11), fill="#7a92c6")
         self._set_defensa_state(True)
 
     def _set_defensa_state(self, enabled):

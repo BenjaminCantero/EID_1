@@ -4,7 +4,7 @@ from core.modelos import (completar_cuadrado, cos_taylor, cosh_taylor,
                           exp_taylor, raiz_cuadrada_manual, sin_taylor, sinh_taylor)
 
 
-def puntos_grafica(A, B, C, D, E, tipo, n=300):
+def puntos_grafica(A, B, C, D, E, tipo, n=500):
     """Genera puntos para dibujar la cónica en un canvas."""
     puntos = []
 
@@ -106,7 +106,7 @@ def puntos_grafica_limite(tramos, ancho=400, alto=300, rango_x=10):
     from core.limites import evaluar_funcion
 
     a = tramos["a"]
-    n = 200
+    n = 400  # Aumentado de 200 a 400 para más puntos
     cx = ancho / 2
     cy = alto / 2
     escala_x = ancho / (2 * rango_x)

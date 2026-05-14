@@ -112,8 +112,8 @@ class PanelLimites(tk.Frame):
                  font=("Helvetica", 10, "bold"),
                  bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w")
 
-        self.canvas_lim = tk.Canvas(right, width=320, height=220,
-                                     bg="#0d1b2e", relief="flat", bd=2,
+        self.canvas_lim = tk.Canvas(right, width=380, height=280,
+                                     bg="#051020", relief="flat", bd=2,
                                      highlightthickness=1,
                                      highlightbackground=AZUL_CLARO)
         self.canvas_lim.pack()
@@ -226,68 +226,111 @@ class PanelLimites(tk.Frame):
 
     def _graficar(self, tramos, analisis):
         self.canvas_lim.delete("all")
-        w, h = 320, 220
+        w, h = self.canvas_lim.winfo_width(), self.canvas_lim.winfo_height()
+        if w <= 1:  # Canvas no ha sido renderizado aún
+            w, h = 380, 280
+        
         cx, cy = w // 2, h // 2
-        escala = 18
+        escala = 20  # Escala ligeramente mayor
 
-        # Ejes
-        self.canvas_lim.create_line(5, cy, w - 5, cy, fill="#3a5a8a", width=1)
-        self.canvas_lim.create_line(cx, 5, cx, h - 5, fill="#3a5a8a", width=1)
+        # Fondo más oscuro para contraste
+        self.canvas_lim.create_rectangle(0, 0, w, h, fill="#051020", outline="")
 
-        for i in range(-8, 9):
+        # Grid sutil para mejor orientación
+        for i in range(-10, 11):
             if i == 0:
                 continue
             px = cx + i * escala
             py = cy + i * escala
-            self.canvas_lim.create_line(px, cy - 3, px, cy + 3, fill="#3a5a8a")
-            self.canvas_lim.create_line(cx - 3, py, cx + 3, py, fill="#3a5a8a")
+            # Grid de fondo muy sutil
+            self.canvas_lim.create_line(px, 10, px, h - 10, fill="#1a2f4a", width=0.5)
+            self.canvas_lim.create_line(10, py, w - 10, py, fill="#1a2f4a", width=0.5)
 
-        self.canvas_lim.create_text(w - 12, cy - 8, text="x",
-                                     font=("Courier", 7, "bold"), fill="#5a7aaa")
-        self.canvas_lim.create_text(cx + 7, 10, text="y",
-                                     font=("Courier", 7, "bold"), fill="#5a7aaa")
+        # Ejes con mejor visibilidad
+        self.canvas_lim.create_line(10, cy, w - 10, cy, fill="#4a7aaa", width=1.5)
+        self.canvas_lim.create_line(cx, 10, cx, h - 10, fill="#4a7aaa", width=1.5)
 
-        # Asíntota vertical si es infinita
+        # Marcas en ejes con mejor contraste
+        for i in range(-10, 11):
+            if i == 0:
+                continue
+            px = cx + i * escala
+            py = cy + i * escala
+            # Marcas más largas
+            self.canvas_lim.create_line(px, cy - 5, px, cy + 5, fill="#6a9aaa", width=1)
+            self.canvas_lim.create_line(cx - 5, py, cx + 5, py, fill="#6a9aaa", width=1)
+            if i % 2 == 0:
+                self.canvas_lim.create_text(px, cy + 14, text=str(i),
+                                            font=("Courier", 7, "bold"), fill="#8aaaaa")
+                self.canvas_lim.create_text(cx - 14, py, text=str(-i),
+                                            font=("Courier", 7, "bold"), fill="#8aaaaa")
+
+        self.canvas_lim.create_text(w - 12, cy - 15, text="x",
+                                     font=("Courier", 10, "bold"), fill="#6a9aaa")
+        self.canvas_lim.create_text(cx + 12, 12, text="y",
+                                     font=("Courier", 10, "bold"), fill="#6a9aaa")
+
+        # Asíntota vertical si es infinita (más visible)
         caso = tramos["tipo"]
         a = tramos["a"]
         if caso == "infinita":
             ax = cx + a * escala
+            # Asíntota punteada roja más gruesa
             self.canvas_lim.create_line(ax, 5, ax, h - 5,
-                                         fill=ROJO, width=1, dash=(4, 4))
-            self.canvas_lim.create_text(ax + 5, 15,
-                                         text=f"x={a}", font=("Courier", 7), fill=ROJO)
+                                         fill="#ff6b6b", width=2, dash=(6, 4))
+            self.canvas_lim.create_text(ax + 8, 18,
+                                         text=f"x={a}", font=("Courier", 8, "bold"), fill="#ff6b6b")
 
         # Obtener segmentos
         segmentos, pantalla_fn = puntos_grafica_limite(tramos, w, h, rango_x=8)
+        
+        # Dibujar función con grosor mejorado y colores vibrantes
         for seg in segmentos:
             x1, y1, x2, y2 = seg
-            self.canvas_lim.create_line(x1, y1, x2, y2, fill=AMARILLO, width=2)
+            # Validar que los puntos están dentro del canvas
+            if (10 <= x1 <= w - 10 and 10 <= y1 <= h - 10 and
+                10 <= x2 <= w - 10 and 10 <= y2 <= h - 10):
+                self.canvas_lim.create_line(x1, y1, x2, y2, 
+                                            fill="#00ffaa", width=3, 
+                                            capstyle="round", joinstyle="round")
 
-        # Marcar punto a
+        # Marcar punto a (más visible)
         ax_px, ay_px = pantalla_fn(a, 0)
-        self.canvas_lim.create_oval(ax_px - 4, ay_px - 4,
-                                     ax_px + 4, ay_px + 4,
-                                     outline=NARANJA, fill="#0d1b2e", width=2)
-        self.canvas_lim.create_text(ax_px, cy + 15,
-                                     text=f"a={a}", font=("Courier", 7), fill=NARANJA)
+        self.canvas_lim.create_oval(ax_px - 6, ay_px - 6,
+                                     ax_px + 6, ay_px + 6,
+                                     outline=NARANJA, fill="#051020", width=2)
+        self.canvas_lim.create_text(ax_px, cy + 20,
+                                     text=f"a={a}", font=("Courier", 9, "bold"), fill=NARANJA)
 
-        # Puntos de discontinuidad de salto
+        # Puntos de discontinuidad de salto (mucho más visibles)
         if caso == "salto":
             lim_izq = analisis.get("lim_real_izq", 0)
             lim_der = analisis.get("lim_real_der", 0)
+            
+            # Punto por la izquierda (hueco)
             if isinstance(lim_izq, (int, float)):
                 px_i, py_i = pantalla_fn(a, lim_izq)
-                self.canvas_lim.create_oval(px_i - 4, py_i - 4, px_i + 4, py_i + 4,
-                                             outline=AMARILLO, fill="#0d1b2e", width=2)
+                # Círculo hueco más grande (punto no incluido)
+                self.canvas_lim.create_oval(px_i - 6, py_i - 6, px_i + 6, py_i + 6,
+                                             outline="#ff9999", fill="", width=3)
+                self.canvas_lim.create_text(px_i - 15, py_i - 10,
+                                             text=f"L⁻={lim_izq}", 
+                                             font=("Courier", 7, "bold"), fill="#ff9999")
+            
+            # Punto por la derecha (relleno)
             if isinstance(lim_der, (int, float)):
                 px_d, py_d = pantalla_fn(a, lim_der)
-                self.canvas_lim.create_oval(px_d - 4, py_d - 4, px_d + 4, py_d + 4,
-                                             fill=AMARILLO, outline="white", width=1)
+                # Círculo relleno más grande (punto incluido)
+                self.canvas_lim.create_oval(px_d - 6, py_d - 6, px_d + 6, py_d + 6,
+                                             fill="#66ff99", outline="white", width=2)
+                self.canvas_lim.create_text(px_d + 12, py_d - 10,
+                                             text=f"L⁺={lim_der}", 
+                                             font=("Courier", 7, "bold"), fill="#66ff99")
 
-        # Etiqueta tipo
-        self.canvas_lim.create_text(cx, h - 10,
+        # Leyenda mejorada
+        self.canvas_lim.create_text(w // 2, h - 12,
                                      text=f"Discontinuidad: {analisis['tipo_disc']}",
-                                     font=("Helvetica", 8, "bold"), fill=AMARILLO)
+                                     font=("Helvetica", 10, "bold"), fill="#00ffaa")
 
     def _mostrar_texto(self, texto):
         self.txt_analisis.config(state="normal")
