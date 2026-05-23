@@ -6,6 +6,9 @@ Retorna objetos de datos estructurados para facilitar reutilización y pruebas.
 Patrón: Funciones de servicio que retornan dataclasses (mejor que diccionarios anidados).
 """
 
+from dataclasses import dataclass, field
+from typing import Any, Dict, List
+
 from core.rut import validar_rut
 from core.conica import (
     calcular_coeficientes, clasificar_conica, ecuacion_str, forma_canonica
@@ -21,39 +24,27 @@ from core.validators import (
 )
 
 
+@dataclass
 class ConicaAnalysis:
     """Estructura de datos para encapsular los resultados del análisis de cónicas."""
-    
-    def __init__(self):
-        # Validación
-        self.es_valido = False
-        self.pasos_validacion = []
-        
-        # Identificación del RUT
-        self.digitos = []
-        self.dv = ""
-        self.rut_formateado = ""
-        
-        # Coeficientes
-        self.A = 0.0
-        self.B = 0.0
-        self.C = 0.0
-        self.D = 0.0
-        self.E = 0.0
-        self.pasos_coeficientes = []
-        self.ajustes = []
-        
-        # Clasificación
-        self.tipo_conica = ""
-        
-        # Ecuación
-        self.ecuacion_general = ""
-        
-        # Forma canónica
-        self.ecuacion_canonica = ""
-        self.pasos_canonica = []
-        self.elementos_geometricos = {}
-        
+    es_valido: bool = False
+    pasos_validacion: List[str] = field(default_factory=list)
+    digitos: List[int] = field(default_factory=list)
+    dv: str = ""
+    rut_formateado: str = ""
+    A: float = 0.0
+    B: float = 0.0
+    C: float = 0.0
+    D: float = 0.0
+    E: float = 0.0
+    pasos_coeficientes: List[str] = field(default_factory=list)
+    ajustes: List[str] = field(default_factory=list)
+    tipo_conica: str = ""
+    ecuacion_general: str = ""
+    ecuacion_canonica: str = ""
+    pasos_canonica: List[str] = field(default_factory=list)
+    elementos_geometricos: Dict[str, Any] = field(default_factory=dict)
+
     def to_dict(self):
         """Convierte el análisis a diccionario para fácil serialización."""
         return {
@@ -87,39 +78,29 @@ class ConicaAnalysis:
         }
 
 
+@dataclass
 class LimitesAnalysis:
     """Estructura de datos para encapsular los resultados del análisis de límites."""
-    
-    def __init__(self):
-        # Validación
-        self.es_valido = False
-        self.pasos_validacion = []
-        
-        # Identificación del RUT
-        self.digitos = []
-        self.dv = ""
-        self.rut_formateado = ""
-        
-        # Función
-        self.a = 0
-        self.caso_tipo = ""  # "removible", "salto", "infinita"
-        self.razon_caso = ""
-        self.descripcion_funcion = ""
-        self.tramos_info = {}
-        
-        # Límites y análisis
-        self.lim_izquierda = None
-        self.lim_derecha = None
-        self.lim_existe = False
-        self.lim_valor = None
-        self.f_en_a = None
-        self.es_continua = False
-        self.tipo_discontinuidad = ""
-        self.pasos_limites = []
-        
-        # Tabla de valores
-        self.tabla_valores = []
-        
+    es_valido: bool = False
+    pasos_validacion: List[str] = field(default_factory=list)
+    digitos: List[int] = field(default_factory=list)
+    dv: str = ""
+    rut_formateado: str = ""
+    a: int = 0
+    caso_tipo: str = ""
+    razon_caso: str = ""
+    descripcion_funcion: str = ""
+    tramos_info: Dict[str, Any] = field(default_factory=dict)
+    lim_izquierda: Any = None
+    lim_derecha: Any = None
+    lim_existe: bool = False
+    lim_valor: Any = None
+    f_en_a: Any = None
+    es_continua: bool = False
+    tipo_discontinuidad: str = ""
+    pasos_limites: List[str] = field(default_factory=list)
+    tabla_valores: List[Dict[str, Any]] = field(default_factory=list)
+
     def to_dict(self):
         """Convierte el análisis a diccionario para fácil serialización."""
         return {

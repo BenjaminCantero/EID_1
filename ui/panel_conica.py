@@ -3,9 +3,9 @@
 import tkinter as tk
 from tkinter import messagebox, scrolledtext
 
-from core.rut import validar_rut
-from core.conica import calcular_coeficientes, clasificar_conica, ecuacion_str, forma_canonica
+from core.exceptions import ConicaInvalidaError, RUTInvalidoError
 from core.graficas import puntos_grafica
+from core.services import analizar_conica
 from ui.componentes import (AZUL_OSCURO, AZUL_MEDIO, AZUL_CLARO,
                             BLANCO, AMARILLO, GRIS_TEXTO, VERDE,
                             ROJO, NARANJA)
@@ -174,12 +174,11 @@ class PanelConica(tk.Frame):
                 self.logger.warning("PanelCónica: RUT vacío ingresado")
             return
 
-        es_valido, pasos_val, digitos, dv_calc = validar_rut(rut_str)
-
-        texto = "═══ VALIDACIÓN DEL RUT ═══\n"
-        texto += "\n".join(pasos_val) + "\n\n"
-
-        if not es_valido:
+        try:
+            resultado = analizar_conica(rut_str)
+        except RUTInvalidoError as e:
+            texto = "═══ VALIDACIÓN DEL RUT ═══\n"
+            texto += "\n".join(getattr(e, 'detalles', [str(e)])) + "\n"
             self._mostrar_texto(texto)
             self.lbl_estado.config(text="❌ RUT inválido", fg=ROJO)
             self.lbl_tipo.config(text="")
@@ -189,50 +188,48 @@ class PanelConica(tk.Frame):
             if self.logger:
                 self.logger.warning(f"PanelCónica: RUT inválido '{rut_str}'")
             return
+        except ConicaInvalidaError as e:
+            self._mostrar_texto(f"❌ Error en cónica:\n{e}\n")
+            self.lbl_estado.config(text="❌ Cónica inválida", fg=ROJO)
+            self.lbl_tipo.config(text="")
+            self.lbl_resumen_ecuacion.config(text="Ecuación: —")
+            self.lbl_resumen_tipo.config(text="Tipo: —")
+            self._set_defensa_state(False)
+            if self.logger:
+                self.logger.error(f"PanelCónica: Error de cónica para RUT '{rut_str}' — {e}")
+            return
 
-        self.digitos = digitos
-        self.dv = dv_calc
-
-        # Calcular coeficientes
-        A, B, C, D, E, pasos_coef, ajustes = calcular_coeficientes(digitos, dv_calc)
-        self.A, self.B, self.C, self.D, self.E = A, B, C, D, E
-
+        texto = "═══ VALIDACIÓN DEL RUT ═══\n"
+        texto += "\n".join(resultado.pasos_validacion) + "\n\n"
         texto += "═══ CONSTRUCCIÓN DE LA ECUACIÓN ═══\n"
-        texto += "\n".join(pasos_coef) + "\n\n"
+        texto += "\n".join(resultado.pasos_coeficientes) + "\n\n"
         texto += "Ajustes aplicados:\n"
-        for aj in ajustes:
+        for aj in resultado.ajustes:
             texto += f"  • {aj}\n"
         texto += "\n"
-
-        # Clasificación
-        tipo = clasificar_conica(A, B)
-        self.tipo = tipo
-        eq = ecuacion_str(A, B, C, D, E)
-        texto += f"Ecuación general:\n  {eq}\n\n"
-        texto += f"Tipo de cónica: {tipo}\n\n"
-
-        # Forma canónica
-        canonica, pasos_can, elementos = forma_canonica(A, B, C, D, E, tipo)
-        self.elementos = elementos
+        texto += f"Ecuación general:\n  {resultado.ecuacion_general}\n\n"
+        texto += f"Tipo de cónica: {resultado.tipo_conica}\n\n"
         texto += "═══ FORMA CANÓNICA ═══\n"
-        texto += "\n".join(pasos_can) + "\n\n"
-        texto += f"Forma canónica: {canonica}\n"
+        texto += "\n".join(resultado.pasos_canonica) + "\n\n"
+        texto += f"Forma canónica: {resultado.ecuacion_canonica}\n"
 
         self._mostrar_texto(texto)
-        self.lbl_tipo.config(text=f"Cónica: {tipo}", fg=AMARILLO)
-        self.lbl_resumen_ecuacion.config(text=f"Ecuación: {eq}")
-        self.lbl_resumen_tipo.config(text=f"Tipo: {tipo}")
-        self.lbl_estado.config(text=f"✓ RUT válido — {tipo} detectada", fg=VERDE)
+        self.lbl_tipo.config(text=f"Cónica: {resultado.tipo_conica}", fg=AMARILLO)
+        self.lbl_resumen_ecuacion.config(text=f"Ecuación: {resultado.ecuacion_general}")
+        self.lbl_resumen_tipo.config(text=f"Tipo: {resultado.tipo_conica}")
+        self.lbl_estado.config(text=f"✓ RUT válido — {resultado.tipo_conica} detectada", fg=VERDE)
         if self.logger:
-            self.logger.info(f"PanelCónica: RUT válido '{rut_str}' → tipo '{tipo}'")
+            self.logger.info(f"PanelCónica: RUT válido '{rut_str}' → tipo '{resultado.tipo_conica}'")
 
-        # Limpiar campos de defensa
+        self.elementos = resultado.elementos_geometricos
         for e in self.entries_elem.values():
             e.delete(0, "end")
         self._set_defensa_state(True)
 
-        # Graficar
-        self._graficar(A, B, C, D, E, tipo, elementos)
+        self._graficar(resultado.A, resultado.B,
+                       resultado.C, resultado.D,
+                       resultado.E, resultado.tipo_conica,
+                       resultado.elementos_geometricos)
 
     def _graficar(self, A, B, C, D, E, tipo, elementos):
         self.canvas.delete("all")

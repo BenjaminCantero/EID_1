@@ -4,9 +4,9 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 
-from core.rut import validar_rut
-from core.limites import seleccionar_caso, construir_funcion, calcular_limites
-from core.graficas import tabla_valores, puntos_grafica_limite
+from core.exceptions import LimiteInvalidoError, RUTInvalidoError
+from core.graficas import puntos_grafica_limite
+from core.services import analizar_limites
 from ui.componentes import (AZUL_OSCURO, AZUL_MEDIO, AZUL_CLARO,
                             BLANCO, AMARILLO, GRIS_TEXTO, VERDE,
                             ROJO, NARANJA)
@@ -181,47 +181,54 @@ class PanelLimites(tk.Frame):
         if self.logger:
             self.logger.info(f"PanelLímites: Inicia generación de función para RUT '{rut_str}'")
 
-        es_valido, _, digitos, dv = validar_rut(rut_str)
+        if not rut_str:
+            messagebox.showerror("Error", "Debes ingresar un RUT válido.")
+            if self.logger:
+                self.logger.warning("PanelLímites: RUT vacío ingresado")
+            return
 
-        if not es_valido:
+        try:
+            resultado = analizar_limites(rut_str)
+        except RUTInvalidoError:
             messagebox.showerror("Error", "RUT inválido. Verifique e intente de nuevo.")
             if self.logger:
                 self.logger.warning(f"PanelLímites: RUT inválido '{rut_str}'")
             return
+        except LimiteInvalidoError as e:
+            messagebox.showerror("Error", f"No se pudo generar la función: {e}")
+            if self.logger:
+                self.logger.error(f"PanelLímites: Error de límites para RUT '{rut_str}' — {e}")
+            return
 
-        self.a = digitos[2]  # a = d3
-        caso, razon = seleccionar_caso(digitos[7])
-        desc, tramos = construir_funcion(caso, self.a, digitos)
-        self.tramos = tramos
-        analisis = calcular_limites(tramos)
-        self.analisis = analisis
+        self.tramos = resultado.tramos_info
+        self.analisis = resultado
 
-        # Texto análisis
-        texto = f"═══ FUNCIÓN GENERADA ═══\n{desc}\n\n"
-        texto += f"Punto de análisis: a = d3 = {self.a}\n"
-        texto += f"Selección del caso:\n  {razon}\n\n"
+        texto = f"═══ FUNCIÓN GENERADA ═══\n{resultado.descripcion_funcion}\n\n"
+        texto += f"Punto de análisis: a = {resultado.a}\n"
+        texto += f"Selección del caso:\n  {resultado.razon_caso}\n\n"
         texto += "═══ CÁLCULO DE LÍMITES ═══\n"
-        texto += "\n".join(analisis["pasos"]) + "\n"
+        texto += "\n".join(resultado.pasos_limites) + "\n"
 
         self._mostrar_texto(texto)
-        self.lbl_funcion.config(text=f"f(x) definida con a={self.a}  |  Caso: {caso}")
-        self.lbl_estado.config(text=f"✓ Función generada — Discontinuidad: {analisis['tipo_disc']}", fg=VERDE)
+        self.lbl_funcion.config(text=f"f(x) definida con a={resultado.a}  |  Caso: {resultado.caso_tipo}")
+        self.lbl_estado.config(text=f"✓ Función generada — Discontinuidad: {resultado.tipo_discontinuidad}", fg=VERDE)
         if self.logger:
-            self.logger.info(f"PanelLímites: Función generada para RUT '{rut_str}' — caso '{caso}', tipo '{analisis['tipo_disc']}'")
+            self.logger.info(f"PanelLímites: Función generada para RUT '{rut_str}' — caso '{resultado.caso_tipo}', tipo '{resultado.tipo_discontinuidad}'")
 
-        # Tabla
         for row in self.tabla_tree.get_children():
             self.tabla_tree.delete(row)
-        filas = tabla_valores(tramos)
-        for x_str, y_str, lado in filas:
+        for fila in resultado.tabla_valores:
+            x_str = f"{fila['x']:.4f}" if fila['x'] is not None else "—"
+            y_str = "No def." if fila['f_x'] is None else f"{fila['f_x']:.4f}"
+            lado = fila['lado']
             tag = "izq" if lado == "izq" else "der"
-            self.tabla_tree.insert("", "end", values=(x_str, y_str, "← izq" if lado == "izq" else "der →"),
+            self.tabla_tree.insert("", "end",
+                                    values=(x_str, y_str, "← izq" if lado == "izq" else "der →"),
                                     tags=(tag,))
         self.tabla_tree.tag_configure("izq", background="#1a3a6a", foreground="#90caf9")
         self.tabla_tree.tag_configure("der", background="#1a4a2a", foreground="#a5d6a7")
 
-        # Gráfica
-        self._graficar(tramos, analisis)
+        self._graficar(self.tramos, resultado)
         self._limpiar_defensa()
 
     def _graficar(self, tramos, analisis):
@@ -294,18 +301,33 @@ class PanelLimites(tk.Frame):
                                             fill="#00ffaa", width=3, 
                                             capstyle="round", joinstyle="round")
 
-        # Marcar punto a (más visible)
-        ax_px, ay_px = pantalla_fn(a, 0)
-        self.canvas_lim.create_oval(ax_px - 6, ay_px - 6,
-                                     ax_px + 6, ay_px + 6,
-                                     outline=NARANJA, fill="#051020", width=2)
-        self.canvas_lim.create_text(ax_px, cy + 20,
+        # Marcar visualmente la posición x = a en el eje (etiqueta)
+        self.canvas_lim.create_text(cx + a * escala, h - 20,
                                      text=f"a={a}", font=("Courier", 9, "bold"), fill=NARANJA)
+
+        # Discontinuidad removible: dibujar hueco en (a, límite)
+        if caso == "removible":
+            lim_val = getattr(analisis, "lim_valor", None)
+            f_en_a = getattr(analisis, "f_en_a", None)
+            if isinstance(lim_val, (int, float)):
+                px_h, py_h = pantalla_fn(a, lim_val)
+                # Hueco: círculo grande vacío (punto no incluido)
+                self.canvas_lim.create_oval(px_h - 7, py_h - 7, px_h + 7, py_h + 7,
+                                             outline="#ffd27f", fill="", width=3)
+                # Etiqueta del límite
+                self.canvas_lim.create_text(px_h + 18, py_h - 10,
+                                             text=f"lim={lim_val}",
+                                             font=("Courier", 7, "bold"), fill="#ffd27f")
+            # Si f(a) estuviera definida (no es el caso típico), mostrar punto relleno
+            if f_en_a is not None and isinstance(f_en_a, (int, float)):
+                px_fa, py_fa = pantalla_fn(a, f_en_a)
+                self.canvas_lim.create_oval(px_fa - 5, py_fa - 5, px_fa + 5, py_fa + 5,
+                                             fill="#66ff99", outline="white", width=2)
 
         # Puntos de discontinuidad de salto (mucho más visibles)
         if caso == "salto":
-            lim_izq = analisis.get("lim_real_izq", 0)
-            lim_der = analisis.get("lim_real_der", 0)
+            lim_izq = getattr(analisis, "lim_real_izq", None)
+            lim_der = getattr(analisis, "lim_real_der", None)
             
             # Punto por la izquierda (hueco)
             if isinstance(lim_izq, (int, float)):
@@ -329,7 +351,7 @@ class PanelLimites(tk.Frame):
 
         # Leyenda mejorada
         self.canvas_lim.create_text(w // 2, h - 12,
-                                     text=f"Discontinuidad: {analisis['tipo_disc']}",
+                                     text=f"Discontinuidad: {getattr(analisis, 'tipo_discontinuidad', '')}",
                                      font=("Helvetica", 10, "bold"), fill="#00ffaa")
 
     def _mostrar_texto(self, texto):
