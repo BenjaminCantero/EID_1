@@ -93,6 +93,30 @@ EID_1/
 
 ---
 
+## Cambios en la arquitectura (Service Layer)
+
+- Se añadió `core/services.py` como capa de servicio que orquesta la lógica de negocio
+    para el análisis de cónicas y funciones por tramos. Este módulo expone las funciones
+    `analizar_conica(rut_str)` y `analizar_limites(rut_str)` como puntos únicos de entrada.
+- Los resultados ahora se retornan como DTOs basados en `@dataclass`:
+    - `ConicaAnalysis` (resultado completo del análisis de cónicas)
+    - `LimitesAnalysis` (resultado completo del análisis de límites)
+- Las UIs `ui/panel_conica.py` y `ui/panel_limites.py` fueron refactorizadas para consumir
+    estos servicios en lugar de invocar directamente los módulos de dominio (`core.conica`,
+    `core.limites`, `core.rut`). Esto mejora la separación de responsabilidades y facilita
+    las pruebas unitarias y la reutilización de la lógica.
+- Los módulos de dominio (`core/conica.py`, `core/limites.py`, `core/rut.py`) se mantienen
+    como implementaciones puras de la lógica matemática; `core/services.py` orquesta su uso.
+- `test_services.py` sirve como verificación rápida del Service Layer y documenta los
+    errores manejados (`RUTInvalidoError`, `ConicaInvalidaError`, `LimiteInvalidoError`).
+
+Beneficios:
+
+- Mejor separación entre presentación y lógica de negocio.
+- Objetos de datos (`dataclasses`) que facilitan serialización y testing.
+- UI más simple y menos acoplada al dominio.
+
+
 ## RUTs de prueba verificados
 
 | RUT | Cónica | Discontinuidad |
