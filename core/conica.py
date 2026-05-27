@@ -2,7 +2,9 @@
 # Construcción de la ecuación general, clasificación y forma canónica
 # Todos los cálculos implementados manualmente (sin numpy/math/sympy)
 
-from core.modelos import completar_cuadrado, raiz_cuadrada_manual
+from core.modelos import raiz_cuadrada_manual, completar_cuadrado
+from core.validators import validar_no_cero
+from core.exceptions import ConicaInvalidaError
 
 
 def calcular_coeficientes(digitos, dv_str):
@@ -12,6 +14,9 @@ def calcular_coeficientes(digitos, dv_str):
 
     Retorna:
         (A, B, C, D, E, pasos: list[str], ajustes: list[str])
+        
+    Raises:
+        ConicaInvalidaError: Si hay indeterminación (división por cero)
     """
     d = digitos  # d[0]=d1 ... d[7]=d8
 
@@ -22,6 +27,13 @@ def calcular_coeficientes(digitos, dv_str):
         v = 11
     else:
         v = int(dv_str)
+    
+    # Validar que v no sea cero (protección)
+    if v == 0:
+        raise ConicaInvalidaError(
+            mensaje="Indeterminación matemática: Divisor v = 0",
+            razon="El dígito verificador genera una indeterminación en cálculo de coeficientes"
+        )
 
     pasos = []
     pasos.append(f"Dígitos del RUT: d1={d[0]}, d2={d[1]}, d3={d[2]}, d4={d[3]}, "
@@ -137,17 +149,6 @@ def forma_canonica(A, B, C, D, E, tipo):
         canonica = "No aplica"
 
     return canonica, pasos, elementos
-
-
-def completar_cuadrado(coef, lin):
-    """
-    Completa el cuadrado: coef*(x² + (lin/coef)*x)
-    Retorna (h, termino_adicional) donde h es el vértice.
-    h = -lin/(2*coef), adicional = -(lin²)/(4*coef)
-    """
-    h = -lin / (2 * coef)
-    adicional = -(lin * lin) / (4 * coef)
-    return h, adicional
 
 
 def _canonica_circunferencia(A, B, C, D, E):

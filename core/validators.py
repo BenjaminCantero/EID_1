@@ -6,6 +6,24 @@ Centraliza la lógica de validación para reducir duplicación de código.
 from core.exceptions import RUTInvalidoError, ConicaInvalidaError, LimiteInvalidoError
 
 
+def validar_no_cero(valor, nombre="denominador"):
+    """
+    Valida que un valor no sea cero para evitar divisiones indeterminadas.
+    
+    Args:
+        valor (float): Valor a validar
+        nombre (str): Nombre de la variable (para mensaje de error)
+        
+    Raises:
+        ConicaInvalidaError: Si el valor es cero (indeterminación)
+    """
+    if abs(valor) < 1e-10:
+        raise ConicaInvalidaError(
+            mensaje=f"Indeterminación matemática: División por cero",
+            razon=f"{nombre} = 0 (no se puede dividir por cero)"
+        )
+
+
 def validar_rut_str(rut_str):
     """
     Valida que un RUT sea un string no vacío y con formato básico.

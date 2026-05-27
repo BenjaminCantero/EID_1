@@ -2,10 +2,15 @@
 
 from core.modelos import (completar_cuadrado, cos_taylor, cosh_taylor,
                           exp_taylor, raiz_cuadrada_manual, sin_taylor, sinh_taylor)
+from core.validators import validar_no_cero
 
 
 def puntos_grafica(A, B, C, D, E, tipo, n=500):
-    """Genera puntos para dibujar la cónica en un canvas."""
+    """Genera puntos para dibujar la cónica en un canvas.
+    
+    Raises:
+        ConicaInvalidaError: Si hay indeterminación (división por cero)
+    """
     puntos = []
 
     if tipo in ("Circunferencia", "Elipse"):
@@ -14,6 +19,8 @@ def puntos_grafica(A, B, C, D, E, tipo, n=500):
         constante = -E - add_x - add_y
         if constante <= 0:
             return []
+        validar_no_cero(A, "coeficiente A")
+        validar_no_cero(B, "coeficiente B")
         a2 = constante / A
         b2 = constante / B
         if a2 <= 0 or b2 <= 0:
@@ -31,6 +38,8 @@ def puntos_grafica(A, B, C, D, E, tipo, n=500):
         constante = -E - add_x - add_y
         if abs(constante) < 1e-9:
             return []
+        validar_no_cero(A, "coeficiente A")
+        validar_no_cero(B, "coeficiente B")
         a2 = constante / A
         b2 = constante / B
         if a2 > 0 and b2 < 0:
@@ -58,6 +67,7 @@ def puntos_grafica(A, B, C, D, E, tipo, n=500):
         if abs(B) < 1e-9:
             h, add_x = completar_cuadrado(A, C)
             const = -add_x - E
+            validar_no_cero(D, "coeficiente D")
             if abs(D) < 1e-9:
                 return []
             p_coef = -A / D
@@ -68,6 +78,7 @@ def puntos_grafica(A, B, C, D, E, tipo, n=500):
         else:
             k, add_y = completar_cuadrado(B, D)
             const = -add_y - E
+            validar_no_cero(C, "coeficiente C")
             if abs(C) < 1e-9:
                 return []
             p_coef = -B / C
@@ -77,28 +88,6 @@ def puntos_grafica(A, B, C, D, E, tipo, n=500):
                 puntos.append((p_coef * (y - k) ** 2 + q, y))
 
     return puntos
-
-
-def tabla_valores(tramos, n=4):
-    """Genera la tabla de valores cercanos al punto a."""
-    from core.limites import evaluar_funcion
-
-    a = tramos["a"]
-    offsets_izq = [-1, -0.1, -0.01, -0.001][:n]
-    offsets_der = [0.001, 0.01, 0.1, 1][:n]
-    filas = []
-
-    for off in offsets_izq:
-        x = a + off
-        y = evaluar_funcion(x, tramos)
-        filas.append((f"{x:.4f}", _valor_str(y), "izq"))
-
-    for off in offsets_der:
-        x = a + off
-        y = evaluar_funcion(x, tramos)
-        filas.append((f"{x:.4f}", _valor_str(y), "der"))
-
-    return filas
 
 
 def puntos_grafica_limite(tramos, ancho=400, alto=300, rango_x=10):

@@ -17,7 +17,10 @@ def raiz_cuadrada_manual(n):
 
 
 def completar_cuadrado(coef, lin):
-    """Completa el cuadrado para coef*(x^2 + (lin/coef)x)."""
+    """Completa el cuadrado para coef*(x^2 + (lin/coef)x).
+    
+    Nota: La validación de coef ≠ 0 se realiza en las funciones que la llaman.
+    """
     h = -lin / (2 * coef)
     adicional = -(lin * lin) / (4 * coef)
     return h, adicional
