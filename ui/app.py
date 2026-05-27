@@ -13,8 +13,8 @@ class AppEID(tk.Tk):
         self.logger = setup_logger()
         self.logger.info("Inicializando aplicación EID")
         self.title("EID MAT1186 — Cónicas y Límites · UCT 2026")
-        self.geometry("1050x700")
-        self.minsize(900, 620)
+        self.geometry("1200x800")
+        self.minsize(800, 600)
         self.configure(bg=AZUL_OSCURO)
         self.resizable(True, True)
         configurar_estilos_ttk()
@@ -55,135 +55,71 @@ class AppEID(tk.Tk):
         frame = tk.Frame(self.notebook, bg=AZUL_OSCURO)
         self.notebook.add(frame, text="  ℹ  Acerca del Proyecto  ")
 
-        # Crear scrollbar para contenido largo
-        canvas_frame = tk.Canvas(frame, bg=AZUL_OSCURO, highlightthickness=0)
-        scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas_frame.yview)
-        scrollable_frame = tk.Frame(canvas_frame, bg=AZUL_OSCURO)
-        
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas_frame.configure(scrollregion=canvas_frame.bbox("all"))
-        )
-        
-        canvas_frame.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas_frame.configure(yscrollcommand=scrollbar.set)
-        canvas_frame.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
+        # Frame central para contenido
+        central_frame = tk.Frame(frame, bg=AZUL_OSCURO)
+        central_frame.pack(fill="both", expand=True, padx=50, pady=40)
 
         # ── Título principal ────────────────────────────────────
-        tk.Label(scrollable_frame,
-                 text="🎓 Evaluación Integrada de Desempeño N°1",
-                 font=("Helvetica", 16, "bold"),
-                 bg=AZUL_OSCURO, fg=AMARILLO).pack(pady=(20, 8))
+        tk.Label(central_frame,
+                 text="🎓 EID N°1 — Cónicas y Límites",
+                 font=("Helvetica", 20, "bold"),
+                 bg=AZUL_OSCURO, fg=AMARILLO).pack(pady=(0, 15))
 
-        tk.Label(scrollable_frame,
-                 text="Análisis y Modelamiento de Secciones Cónicas\ny Funciones por Tramos a partir del RUT",
+        tk.Label(central_frame,
+                 text="Análisis de Secciones Cónicas y Funciones por Tramos",
+                 font=("Helvetica", 12),
+                 bg=AZUL_OSCURO, fg=BLANCO).pack(pady=(0, 20))
+
+        separador = tk.Frame(central_frame, bg=AMARILLO, height=2)
+        separador.pack(fill="x", pady=(0, 20))
+
+        # ── Información esencial ────────────────────────────────
+        info_frame = tk.Frame(central_frame, bg=AZUL_MEDIO, padx=20, pady=15)
+        info_frame.pack(fill="x", pady=(0, 20))
+
+        info_texto = (
+            "📚  MAT1186 — Introducción al Cálculo\n"
+            "🏫  Universidad Católica de Temuco\n"
+            "👥  Ing. Civil en Informática — 2026\n"
+            "🔧  Python 3.8+ • Tkinter • Implementación manual"
+        )
+        tk.Label(info_frame, text=info_texto,
                  font=("Helvetica", 11),
-                 bg=AZUL_OSCURO, fg=BLANCO,
-                 justify="center").pack(pady=8)
+                 bg=AZUL_MEDIO, fg=BLANCO,
+                 justify="center").pack()
 
-        separador = tk.Frame(scrollable_frame, bg=AMARILLO, height=2, width=500)
-        separador.pack(pady=10)
+        separador2 = tk.Frame(central_frame, bg=AMARILLO, height=2)
+        separador2.pack(fill="x", pady=(0, 20))
 
-        # ── Información del proyecto ────────────────────────────
-        info_frame = tk.Frame(scrollable_frame, bg=AZUL_OSCURO)
-        info_frame.pack(fill="x", padx=40, pady=10)
-        
-        info = [
-            ("📚 Curso", "MAT1186 — Introducción al Cálculo"),
-            ("🏫 Institución", "Universidad Católica de Temuco"),
-            ("💻 Carrera", "Ingeniería Civil en Informática"),
-            ("📅 Año", "2026"),
-            ("🔧 Tecnología", "Python 3.8+ • Tkinter (sin librerías matemáticas)"),
-        ]
-        for etiqueta, valor in info:
-            row = tk.Frame(info_frame, bg=AZUL_OSCURO)
-            row.pack(fill="x", pady=2)
-            tk.Label(row, text=etiqueta,
-                     font=("Helvetica", 9, "bold"),
-                     bg=AZUL_OSCURO, fg=AMARILLO, width=18, anchor="w").pack(side="left")
-            tk.Label(row, text=valor,
-                     font=("Helvetica", 9),
-                     bg=AZUL_OSCURO, fg=BLANCO).pack(side="left")
+        # ── Propósito ──────────────────────────────────────────
+        tk.Label(central_frame,
+                 text="Propósito de la Aplicación",
+                 font=("Helvetica", 12, "bold"),
+                 bg=AZUL_OSCURO, fg=AMARILLO).pack(pady=(0, 10))
 
-        separador2 = tk.Frame(scrollable_frame, bg=AZUL_MEDIO, height=1, width=500)
-        separador2.pack(pady=12)
+        proposito = (
+            "Esta herramienta permite analizar matemáticamente secciones cónicas\n"
+            "y funciones por tramos generadas a partir de un RUT chileno válido.\n\n"
+            "Ingrese un RUT en cualquiera de las pestañas principales para comenzar."
+        )
+        tk.Label(central_frame, text=proposito,
+                 font=("Helvetica", 10),
+                 bg=AZUL_OSCURO, fg=GRIS_TEXTO,
+                 justify="center").pack(pady=(0, 20))
 
-        # ── Guía de uso rápida ──────────────────────────────────
-        tk.Label(scrollable_frame,
-                 text="📖 Guía de Uso Rápida",
+        separador3 = tk.Frame(central_frame, bg=AMARILLO, height=2)
+        separador3.pack(fill="x", pady=(0, 20))
+
+        # ── Autores ────────────────────────────────────────────
+        tk.Label(central_frame,
+                 text="👨‍💻  Autores",
                  font=("Helvetica", 11, "bold"),
-                 bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w", padx=40)
+                 bg=AZUL_OSCURO, fg=AMARILLO).pack(pady=(0, 8))
 
-        instruc_frame = tk.Frame(scrollable_frame, bg=AZUL_CLARO, padx=15, pady=12)
-        instruc_frame.pack(fill="x", padx=40, pady=(3, 12))
-        
-        instrucciones = (
-            "🔹 Pestaña 'Secciones Cónicas':\n"
-            "   1. Ingrese un RUT chileno válido (ej: 12.345.678-9)\n"
-            "   2. Presione 'Analizar' para generar la cónica\n"
-            "   3. Revise: validación, ecuación, tipo, forma canónica\n"
-            "   4. Complete los elementos geométricos (Centro, Vértices, Focos, etc.)\n\n"
-            "🔹 Pestaña 'Funciones y Límites':\n"
-            "   1. Ingrese el mismo RUT para generar la función por tramos\n"
-            "   2. El sistema selecciona automáticamente el tipo de discontinuidad\n"
-            "   3. Analice la tabla de valores y la gráfica\n"
-            "   4. Complete los campos de defensa (límites, continuidad, tipo)\n\n"
-        )
-        tk.Label(instruc_frame, text=instrucciones,
-                 font=("Courier", 8),
-                 bg=AZUL_CLARO, fg=BLANCO,
-                 justify="left").pack(anchor="w")
-
-        # ── Consejos para la defensa ────────────────────────────
-        tk.Label(scrollable_frame,
-                 text="💡 Consejos para la Defensa Oral",
-                 font=("Helvetica", 11, "bold"),
-                 bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w", padx=40, pady=(10, 5))
-
-        consejos_frame = tk.Frame(scrollable_frame, bg="#2e567f", padx=15, pady=12)
-        consejos_frame.pack(fill="x", padx=40, pady=(0, 12))
-        
-        consejos = (
-            "✓ Comprenda el algoritmo: Explique paso a paso cómo el programa\n"
-            "  valida el RUT, construye los coeficientes y clasifica la cónica.\n\n"
-            "✓ Justifique matemáticamente: Cada decisión del código debe\n"
-            "  tener una explicación matemática clara.\n\n"
-            "✓ Interprete los elementos geométricos: Sepa dónde está el\n"
-            "  centro, vértices, focos, etc., en la gráfica mostrada.\n\n"
-            "✓ Entienda los límites: Explique qué significa cada límite lateral,\n"
-            "  por qué existe o no existe, y el tipo de discontinuidad.\n\n"
-            "✓ No memorice solo código: El examen evaluará COMPRENSIÓN,\n"
-            "  no memorización. Pueda adaptar y explicar la lógica."
-        )
-        tk.Label(consejos_frame, text=consejos,
-                 font=("Courier", 8),
-                 bg="#2e567f", fg=BLANCO,
-                 justify="left").pack(anchor="w")
-
-        separador3 = tk.Frame(scrollable_frame, bg=AZUL_MEDIO, height=1, width=500)
-        separador3.pack(pady=12)
-
-        # ── Nota importante ────────────────────────────────────
-        tk.Label(scrollable_frame,
-                 text="⚠️  Nota Importante",
-                 font=("Helvetica", 10, "bold"),
-                 bg=AZUL_OSCURO, fg=ROJO).pack(anchor="w", padx=40)
-
-        nota_frame = tk.Frame(scrollable_frame, bg=AZUL_OSCURO, padx=15, pady=8)
-        nota_frame.pack(fill="x", padx=40, pady=(3, 20))
-        
-        nota = (
-            "• Todos los cálculos son IMPLEMENTADOS MANUALMENTE\n"
-            "• NO se usa numpy, math.sqrt(), sympy, ni librerías de álgebra\n"
-            "• Las funciones matemáticas (raíz, seno, coseno, etc.) están\n"
-            "  codificadas usando algoritmos: Newton-Raphson, Taylor series, etc.\n"
-            "• Esto debe ser evidente en su explicación durante la defensa"
-        )
-        tk.Label(nota_frame, text=nota,
-                 font=("Courier", 8),
-                 bg=AZUL_OSCURO, fg=AMARILLO,
-                 justify="left").pack(anchor="w")
+        tk.Label(central_frame,
+                 text="Benjamin C. • Eduardo D. • Ricardo G.",
+                 font=("Helvetica", 10),
+                 bg=AZUL_OSCURO, fg=BLANCO).pack()
 
 
 def main():

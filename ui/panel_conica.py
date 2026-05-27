@@ -1,7 +1,7 @@
 """Panel de cónicas y análisis visual."""
 
 import tkinter as tk
-from tkinter import messagebox, scrolledtext
+from tkinter import messagebox, scrolledtext, ttk
 
 from core.exceptions import ConicaInvalidaError, RUTInvalidoError
 from core.graficas import puntos_grafica
@@ -24,87 +24,109 @@ class PanelConica(tk.Frame):
         self._construir_ui()
 
     def _construir_ui(self):
-        # ── Título ──────────────────────────────────────────
-        tk.Label(self, text="📐  Análisis de Secciones Cónicas",
-                 font=("Helvetica", 16, "bold"),
-                 bg=AZUL_OSCURO, fg=AMARILLO).pack(pady=(15, 5))
-        tk.Label(self, text="Ingresa un RUT chileno válido y el sistema generará la cónica automáticamente.",
-                 font=("Helvetica", 10), bg=AZUL_OSCURO, fg=GRIS_TEXTO).pack()
+        # ── Encabezado principal ────────────────────────────
+        header = tk.Frame(self, bg=AZUL_MEDIO, height=60)
+        header.pack(fill="x", padx=0, pady=0)
+        header.pack_propagate(False)
 
-        # ── Panel de instrucciones ───────────────────────────
-        frame_instruc = tk.Frame(self, bg=AZUL_CLARO, padx=12, pady=8)
-        frame_instruc.pack(fill="x", padx=20, pady=(5, 10))
+        tk.Label(header, text="ANÁLISIS DE SECCIONES CÓNICAS",
+                 font=("Helvetica", 14, "bold"),
+                 bg=AZUL_MEDIO, fg=AMARILLO).pack(anchor="w", padx=20, pady=(10, 5))
+        tk.Label(header, text="Ingrese un RUT chileno válido para generar y analizar una cónica",
+                 font=("Helvetica", 9),
+                 bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(anchor="w", padx=20, pady=(0, 10))
+
+        # ── Sección de entrada (RUT) ────────────────────────
+        frame_rut = tk.Frame(self, bg=AZUL_CLARO, padx=20, pady=12)
+        frame_rut.pack(fill="x", padx=0, pady=0)
         
-        tk.Label(frame_instruc, text="💡 Instrucciones:",
-                 font=("Helvetica", 9, "bold"),
-                 bg=AZUL_CLARO, fg=AMARILLO).pack(anchor="w")
-        
-        instruc_texto = ("1. Ingrese un RUT chileno válido (formato: 12.345.678-9)\n"
-                        "2. Presione 'Analizar' para validar y generar la cónica\n"
-                        "3. El sistema mostrará: validación, ecuación, clasificación, forma canónica\n"
-                        "4. Complete los elementos geométricos durante la defensa oral")
-        
-        tk.Label(frame_instruc, text=instruc_texto,
-                 font=("Helvetica", 8),
-                 bg=AZUL_CLARO, fg=BLANCO,
-                 justify="left").pack(anchor="w", pady=4)
+        # Configurar pesos de columnas para responsividad
+        frame_rut.columnconfigure(1, weight=1)
 
-        # ── Entrada RUT ──────────────────────────────────────
-        frame_rut = tk.Frame(self, bg=AZUL_MEDIO, padx=15, pady=10)
-        frame_rut.pack(fill="x", padx=20, pady=(0, 5))
+        tk.Label(frame_rut, text="Paso 1: Ingrese RUT chileno",
+                 font=("Helvetica", 10, "bold"),
+                 bg=AZUL_CLARO, fg=AMARILLO).grid(row=0, column=0, sticky="w", columnspan=3, pady=(0, 8))
 
-        tk.Label(frame_rut, text="🔑 Ingrese RUT chileno:",
-                 font=("Helvetica", 11, "bold"),
-                 bg=AZUL_MEDIO, fg=BLANCO).grid(row=0, column=0, sticky="w")
+        tk.Label(frame_rut, text="RUT:",
+                 font=("Helvetica", 10, "bold"),
+                 bg=AZUL_CLARO, fg=BLANCO).grid(row=1, column=0, sticky="w", padx=(0, 10))
 
-        self.entry_rut = tk.Entry(frame_rut, font=("Courier", 13),
-                                   width=18, bg=BLANCO, fg=AZUL_OSCURO,
+        self.entry_rut = tk.Entry(frame_rut, font=("Courier", 12),
+                                   bg=BLANCO, fg=AZUL_OSCURO,
                                    insertbackground=AZUL_OSCURO,
                                    relief="flat", bd=3)
-        self.entry_rut.grid(row=0, column=1, padx=10)
+        self.entry_rut.grid(row=1, column=1, padx=10, sticky="ew")
         self.entry_rut.insert(0, "12.345.678-9")
         self.entry_rut.bind("<Return>", lambda e: self._procesar())
 
-        tk.Label(frame_rut, text="Ejemplos válidos: 8.769.123-K  •  12.456.789-5  •  15.234.567-8",
-                 font=("Helvetica", 8), bg=AZUL_MEDIO, fg=GRIS_TEXTO).grid(row=1, column=1, sticky="w", pady=(2, 0))
+        btn_frame = tk.Frame(frame_rut, bg=AZUL_CLARO)
+        btn_frame.grid(row=1, column=2, padx=5, sticky="w")
 
-        btn_frame = tk.Frame(frame_rut, bg=AZUL_MEDIO)
-        btn_frame.grid(row=0, column=2, padx=5)
-
-        tk.Button(btn_frame, text="▶  Analizar", command=self._procesar,
-                  font=("Helvetica", 11, "bold"),
+        tk.Button(btn_frame, text="Analizar", command=self._procesar,
+                  font=("Helvetica", 10, "bold"),
                   bg=AMARILLO, fg=AZUL_OSCURO,
-                  relief="flat", padx=12, pady=5,
+                  relief="flat", padx=15, pady=6,
                   cursor="hand2", activebackground="#ffed4e").pack(side="left")
-        tk.Button(btn_frame, text="🗑 Limpiar", command=self._limpiar,
-                  font=("Helvetica", 10),
-                  bg=AZUL_MEDIO, fg=BLANCO,
-                  relief="flat", padx=10, pady=5,
-                  cursor="hand2", activebackground="#4a7aaa").pack(side="left", padx=(6, 0))
+        
+        tk.Label(frame_rut, text="Ejemplos: 8.769.123-K  •  12.456.789-5  •  15.234.567-8",
+                 font=("Helvetica", 7), bg=AZUL_CLARO, fg=GRIS_TEXTO).grid(row=2, column=1, sticky="w", pady=(4, 0))
 
         # ── Área principal dividida ──────────────────────────
         main_frame = tk.Frame(self, bg=AZUL_OSCURO)
-        main_frame.pack(fill="both", expand=True, padx=20, pady=10)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=15)
+        main_frame.columnconfigure(0, weight=1)
+        main_frame.columnconfigure(1, weight=2)
+        main_frame.rowconfigure(0, weight=1)
 
         # Columna izquierda: pasos y resultados
         left = tk.Frame(main_frame, bg=AZUL_OSCURO)
-        left.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        left.grid(row=0, column=0, sticky="nsew", padx=(0, 15))
 
-        # Columna derecha: gráfica + elementos
-        right = tk.Frame(main_frame, bg=AZUL_OSCURO)
-        right.pack(side="right", fill="both", expand=True)
+        # Columna derecha: gráfica + elementos (con scroll)
+        right_frame = tk.Frame(main_frame, bg=AZUL_OSCURO)
+        right_frame.grid(row=0, column=1, sticky="nsew")
+        right_frame.rowconfigure(0, weight=1)
+        right_frame.columnconfigure(0, weight=1)
+
+        # Canvas scrollable para el lado derecho
+        right_canvas = tk.Canvas(right_frame, bg=AZUL_OSCURO, highlightthickness=0)
+        right_scrollbar = ttk.Scrollbar(right_frame, orient="vertical", command=right_canvas.yview)
+        right = tk.Frame(right_canvas, bg=AZUL_OSCURO)
+
+        right.bind(
+            "<Configure>",
+            lambda e: right_canvas.configure(scrollregion=right_canvas.bbox("all"))
+        )
+
+        right_canvas_window = right_canvas.create_window((0, 0), window=right, anchor="nw")
+        right_canvas.configure(yscrollcommand=right_scrollbar.set)
+        
+        # Hacer que el frame interno se expanda con el canvas
+        def _on_canvas_configure(event):
+            right_canvas.itemconfig(right_canvas_window, width=event.width)
+        right_canvas.bind("<Configure>", _on_canvas_configure)
+        
+        right_canvas.grid(row=0, column=0, sticky="nsew")
+        right_scrollbar.grid(row=0, column=1, sticky="ns")
+
+        # Permitir scroll con la rueda del ratón
+        def _on_mousewheel(event):
+            right_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        right_canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
         # ── Texto de pasos ───────────────────────────────────
-        tk.Label(left, text="📝 Desarrollo matemático paso a paso:",
-                 font=("Helvetica", 10, "bold"),
-                 bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w")
+        step_label_frame = tk.Frame(left, bg=AZUL_MEDIO, padx=10, pady=8)
+        step_label_frame.pack(fill="x", pady=(0, 8))
         
-        tk.Label(left, text="Los pasos muestran el proceso completo desde validación hasta forma canónica",
+        tk.Label(step_label_frame, text="Paso 2: Análisis Matemático",
+                 font=("Helvetica", 10, "bold"),
+                 bg=AZUL_MEDIO, fg=AMARILLO).pack(anchor="w")
+        tk.Label(step_label_frame, text="Validación, coeficientes y forma canónica",
                  font=("Helvetica", 8),
-                 bg=AZUL_OSCURO, fg=GRIS_TEXTO).pack(anchor="w", pady=(0, 3))
+                 bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(anchor="w", pady=(2, 0))
 
         self.txt_pasos = scrolledtext.ScrolledText(
-            left, height=18, width=55,
+            left,
             font=("Courier", 9),
             bg="#0d1b2e", fg=GRIS_TEXTO,
             insertbackground=BLANCO,
@@ -113,15 +135,21 @@ class PanelConica(tk.Frame):
         self.txt_pasos.pack(fill="both", expand=True)
 
         # ── Canvas gráfica ───────────────────────────────────
-        tk.Label(right, text="📊 Gráfica de la cónica:",
+        graph_label_frame = tk.Frame(right, bg=AZUL_MEDIO, padx=10, pady=8)
+        graph_label_frame.pack(fill="x", pady=(0, 8))
+        
+        tk.Label(graph_label_frame, text="Paso 3: Visualización Gráfica",
                  font=("Helvetica", 10, "bold"),
-                 bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w")
+                 bg=AZUL_MEDIO, fg=AMARILLO).pack(anchor="w")
+        tk.Label(graph_label_frame, text="Representación de la cónica en el plano cartesiano",
+                 font=("Helvetica", 8),
+                 bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(anchor="w", pady=(2, 0))
 
-        self.canvas = tk.Canvas(right, width=380, height=320,
+        self.canvas = tk.Canvas(right,
                                  bg="#051020", relief="flat", bd=2,
                                  highlightthickness=1,
                                  highlightbackground=AZUL_CLARO)
-        self.canvas.pack()
+        self.canvas.pack(fill="both", expand=True, pady=(0, 5))
         
         # Canvas label - se actualiza con el tipo de cónica
         self.lbl_canvas_info = tk.Label(right, text="Esperando análisis...",
@@ -133,11 +161,11 @@ class PanelConica(tk.Frame):
         self.lbl_tipo = tk.Label(right, text="",
                                   font=("Helvetica", 13, "bold"),
                                   bg=AZUL_OSCURO, fg=VERDE)
-        self.lbl_tipo.pack(pady=5)
+        self.lbl_tipo.pack(pady=8)
 
-        self.frame_resumen = tk.Frame(right, bg="#2e567f", padx=8, pady=8)
-        self.frame_resumen.pack(fill="x", pady=(3, 8))
-        tk.Label(self.frame_resumen, text="📋 Resumen de la cónica:",
+        self.frame_resumen = tk.Frame(right, bg="#2e567f", padx=10, pady=10)
+        self.frame_resumen.pack(fill="x", pady=(0, 8))
+        tk.Label(self.frame_resumen, text="Resultado",
                  font=("Helvetica", 10, "bold"),
                  bg="#2e567f", fg=AMARILLO).pack(anchor="w")
         self.lbl_resumen_ecuacion = tk.Label(self.frame_resumen,
@@ -283,10 +311,14 @@ class PanelConica(tk.Frame):
         # Canvas más grande para mejor visibilidad
         w, h = self.canvas.winfo_width(), self.canvas.winfo_height()
         if w <= 1:  # Canvas no ha sido renderizado aún
-            w, h = 380, 320
+            w, h = 400, 350
         
         cx, cy = w // 2, h // 2
-        escala = 24  # Escala ligeramente mayor
+        
+        # Escala dinámica basada en el tamaño del canvas
+        # Aprox. 8 unidades en cada dirección = 80% del canvas width
+        ancho_disponible = w * 0.8
+        escala = ancho_disponible / 16  # 16 unidades totales (-8 a +8)
 
         # Fondo más oscuro para contraste
         self.canvas.create_rectangle(0, 0, w, h, fill="#051020", outline="")

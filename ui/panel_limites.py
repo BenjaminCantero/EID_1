@@ -22,74 +22,108 @@ class PanelLimites(tk.Frame):
         self._construir_ui()
 
     def _construir_ui(self):
-        # ── Título ───────────────────────────────────────────
-        tk.Label(self, text="📊  Análisis de Funciones por Tramos y Límites",
+        # ── Encabezado principal ────────────────────────────
+        header = tk.Frame(self, bg=AZUL_MEDIO, height=60)
+        header.pack(fill="x", padx=0, pady=0)
+        header.pack_propagate(False)
+
+        tk.Label(header, text="📊  ANÁLISIS DE FUNCIONES Y LÍMITES",
                  font=("Helvetica", 14, "bold"),
-                 bg=AZUL_OSCURO, fg=AMARILLO).pack(pady=(12, 3))
-        tk.Label(self, text="Fase 6: MAT1186",
-                 font=("Helvetica", 9), bg=AZUL_OSCURO, fg=GRIS_TEXTO).pack()
+                 bg=AZUL_MEDIO, fg=AMARILLO).pack(anchor="w", padx=20, pady=(10, 5))
+        tk.Label(header, text="Ingrese un RUT para analizar funciones por tramos y comportamiento de límites",
+                 font=("Helvetica", 9),
+                 bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(anchor="w", padx=20, pady=(0, 10))
 
-        # ── Panel de instrucciones ───────────────────────────
-        frame_instruc = tk.Frame(self, bg=AZUL_CLARO, padx=12, pady=8)
-        frame_instruc.pack(fill="x", padx=20, pady=(5, 10))
+        # ── Sección de entrada (RUT) ────────────────────────
+        frame_rut = tk.Frame(self, bg=AZUL_CLARO, padx=20, pady=12)
+        frame_rut.pack(fill="x", padx=0, pady=0)
         
-        tk.Label(frame_instruc, text="💡 Instrucciones:",
-                 font=("Helvetica", 9, "bold"),
-                 bg=AZUL_CLARO, fg=AMARILLO).pack(anchor="w")
-        
-        instruc_texto = ("1. Ingrese un RUT chileno válido para generar la función por tramos\n"
-                        "2. El sistema determinará automáticamente el tipo de discontinuidad\n"
-                        "3. Analice: límites laterales, tabla de valores, comportamiento gráfico\n"
-                        "4. Complete los campos vacíos durante la defensa oral")
-        
-        tk.Label(frame_instruc, text=instruc_texto,
-                 font=("Helvetica", 8),
-                 bg=AZUL_CLARO, fg=BLANCO,
-                 justify="left").pack(anchor="w", pady=4)
+        # Configurar pesos de columnas para responsividad
+        frame_rut.columnconfigure(1, weight=1)
 
-        # ── Entrada RUT ──────────────────────────────────────
-        frame_rut = tk.Frame(self, bg=AZUL_MEDIO, padx=15, pady=8)
-        frame_rut.pack(fill="x", padx=20, pady=(0, 5))
+        tk.Label(frame_rut, text="Paso 1: Ingrese RUT chileno",
+                 font=("Helvetica", 10, "bold"),
+                 bg=AZUL_CLARO, fg=AMARILLO).grid(row=0, column=0, sticky="w", columnspan=3, pady=(0, 8))
 
-        tk.Label(frame_rut, text="🔑 RUT chileno:",
-                 font=("Helvetica", 11, "bold"),
-                 bg=AZUL_MEDIO, fg=BLANCO).grid(row=0, column=0, sticky="w")
+        tk.Label(frame_rut, text="RUT:",
+                 font=("Helvetica", 10, "bold"),
+                 bg=AZUL_CLARO, fg=BLANCO).grid(row=1, column=0, sticky="w", padx=(0, 10))
 
         self.entry_rut = tk.Entry(frame_rut, font=("Courier", 12),
-                                   width=16, bg=BLANCO, fg=AZUL_OSCURO,
+                                   bg=BLANCO, fg=AZUL_OSCURO,
                                    relief="flat", bd=3)
-        self.entry_rut.grid(row=0, column=1, padx=8)
+        self.entry_rut.grid(row=1, column=1, padx=10, sticky="ew")
         self.entry_rut.insert(0, "12.345.678-9")
         self.entry_rut.bind("<Return>", lambda e: self._procesar())
 
-        tk.Button(frame_rut, text="▶  Generar función",
+        btn_frame = tk.Frame(frame_rut, bg=AZUL_CLARO)
+        btn_frame.grid(row=1, column=2, padx=5, sticky="w")
+
+        tk.Button(btn_frame, text="▶  Generar función",
                   command=self._procesar,
                   font=("Helvetica", 10, "bold"),
                   bg=AMARILLO, fg=AZUL_OSCURO,
-                  relief="flat", padx=10, pady=4,
-                  cursor="hand2", activebackground="#ffed4e").grid(row=0, column=2, padx=5)
+                  relief="flat", padx=15, pady=6,
+                  cursor="hand2", activebackground="#ffed4e").pack(side="left")
+        
+        tk.Label(frame_rut, text="Ejemplos: 8.769.123-K  •  12.456.789-5  •  15.234.567-8",
+                 font=("Helvetica", 7), bg=AZUL_CLARO, fg=GRIS_TEXTO).grid(row=2, column=1, sticky="w", pady=(4, 0))
 
         # ── Cuerpo principal ──────────────────────────────────
         body = tk.Frame(self, bg=AZUL_OSCURO)
         body.pack(fill="both", expand=True, padx=20, pady=5)
+        body.columnconfigure(0, weight=1)
+        body.columnconfigure(1, weight=2)
+        body.rowconfigure(0, weight=1)
 
         left = tk.Frame(body, bg=AZUL_OSCURO)
-        left.pack(side="left", fill="both", expand=True, padx=(0, 8))
+        left.grid(row=0, column=0, sticky="nsew", padx=(0, 8))
 
-        right = tk.Frame(body, bg=AZUL_OSCURO)
-        right.pack(side="right", fill="both", expand=True)
+        # Marco derecho con scroll
+        right_frame = tk.Frame(body, bg=AZUL_OSCURO)
+        right_frame.grid(row=0, column=1, sticky="nsew")
+        right_frame.rowconfigure(0, weight=1)
+        right_frame.columnconfigure(0, weight=1)
+
+        # Canvas scrollable para el lado derecho
+        right_canvas = tk.Canvas(right_frame, bg=AZUL_OSCURO, highlightthickness=0)
+        right_scrollbar = ttk.Scrollbar(right_frame, orient="vertical", command=right_canvas.yview)
+        right = tk.Frame(right_canvas, bg=AZUL_OSCURO)
+
+        right.bind(
+            "<Configure>",
+            lambda e: right_canvas.configure(scrollregion=right_canvas.bbox("all"))
+        )
+
+        right_canvas_window = right_canvas.create_window((0, 0), window=right, anchor="nw")
+        right_canvas.configure(yscrollcommand=right_scrollbar.set)
+
+        # Hacer que el frame interno se expanda con el canvas
+        def _on_canvas_configure(event):
+            right_canvas.itemconfig(right_canvas_window, width=event.width)
+        right_canvas.bind("<Configure>", _on_canvas_configure)
+
+        right_canvas.grid(row=0, column=0, sticky="nsew")
+        right_scrollbar.grid(row=0, column=1, sticky="ns")
+
+        # Permitir scroll con la rueda del ratón
+        def _on_mousewheel(event):
+            right_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        right_canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
         # ── Texto de análisis matemático ─────────────────────
-        tk.Label(left, text="📝 Análisis matemático:",
-                 font=("Helvetica", 10, "bold"),
-                 bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w")
+        analysis_label_frame = tk.Frame(left, bg=AZUL_MEDIO, padx=10, pady=8)
+        analysis_label_frame.pack(fill="x", pady=(0, 8))
         
-        tk.Label(left, text="Validación, tipo de función, cálculo de límites laterales y clasificación",
+        tk.Label(analysis_label_frame, text="Paso 2: Análisis Matemático",
+                 font=("Helvetica", 10, "bold"),
+                 bg=AZUL_MEDIO, fg=AMARILLO).pack(anchor="w")
+        tk.Label(analysis_label_frame, text="Validación, tipo de función y cálculo de límites laterales",
                  font=("Helvetica", 8),
-                 bg=AZUL_OSCURO, fg=GRIS_TEXTO).pack(anchor="w", pady=(0, 3))
+                 bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(anchor="w", pady=(2, 0))
 
         self.txt_analisis = scrolledtext.ScrolledText(
-            left, height=14, width=50,
+            left,
             font=("Courier", 9),
             bg="#0d1b2e", fg=GRIS_TEXTO,
             insertbackground=BLANCO,
@@ -98,12 +132,18 @@ class PanelLimites(tk.Frame):
         self.txt_analisis.pack(fill="both", expand=True)
 
         # ── Tabla de valores ─────────────────────────────────
-        tk.Label(left, text="📋 Tabla de valores cercanos al punto a:",
+        table_label_frame = tk.Frame(left, bg=AZUL_MEDIO, padx=10, pady=8)
+        table_label_frame.pack(fill="x", pady=(8, 4))
+        
+        tk.Label(table_label_frame, text="Tabla de Valores",
                  font=("Helvetica", 9, "bold"),
-                 bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w", pady=(8, 2))
+                 bg=AZUL_MEDIO, fg=AMARILLO).pack(anchor="w")
+        tk.Label(table_label_frame, text="Valores cercanos al punto crítico",
+                 font=("Helvetica", 7),
+                 bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(anchor="w", pady=(1, 0))
 
         frame_tabla = tk.Frame(left, bg=AZUL_MEDIO)
-        frame_tabla.pack(fill="x")
+        frame_tabla.pack(fill="x", pady=(0, 8))
 
         self.tabla_tree = ttk.Treeview(frame_tabla,
                                         columns=("x", "f(x)", "lado"),
@@ -130,15 +170,21 @@ class PanelLimites(tk.Frame):
         self.tabla_tree.pack(fill="x", padx=4, pady=4)
 
         # ── Gráfica canvas ───────────────────────────────────
-        tk.Label(right, text="📊 Gráfica de la función:",
+        graph_label_frame = tk.Frame(right, bg=AZUL_MEDIO, padx=10, pady=8)
+        graph_label_frame.pack(fill="x", pady=(0, 8))
+        
+        tk.Label(graph_label_frame, text="Paso 3: Visualización Gráfica",
                  font=("Helvetica", 10, "bold"),
-                 bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w")
+                 bg=AZUL_MEDIO, fg=AMARILLO).pack(anchor="w")
+        tk.Label(graph_label_frame, text="Comportamiento de la función y su discontinuidad",
+                 font=("Helvetica", 8),
+                 bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(anchor="w", pady=(2, 0))
 
-        self.canvas_lim = tk.Canvas(right, width=380, height=280,
+        self.canvas_lim = tk.Canvas(right,
                                      bg="#051020", relief="flat", bd=2,
                                      highlightthickness=1,
                                      highlightbackground=AZUL_CLARO)
-        self.canvas_lim.pack()
+        self.canvas_lim.pack(fill="both", expand=True)
         
         # Canvas info label - se actualiza con el tipo de discontinuidad
         self.lbl_canvas_lim_info = tk.Label(right, text="Esperando análisis...",
@@ -280,10 +326,14 @@ class PanelLimites(tk.Frame):
         self.canvas_lim.delete("all")
         w, h = self.canvas_lim.winfo_width(), self.canvas_lim.winfo_height()
         if w <= 1:  # Canvas no ha sido renderizado aún
-            w, h = 380, 280
+            w, h = 400, 350
         
         cx, cy = w // 2, h // 2
-        escala = 20  # Escala ligeramente mayor
+        
+        # Escala dinámica basada en el tamaño del canvas
+        # Aprox. 10 unidades en cada dirección = 80% del canvas width
+        ancho_disponible = w * 0.8
+        escala = ancho_disponible / 20  # 20 unidades totales (-10 a +10)
 
         # Fondo más oscuro para contraste
         self.canvas_lim.create_rectangle(0, 0, w, h, fill="#051020", outline="")
