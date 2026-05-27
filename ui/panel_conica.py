@@ -25,19 +25,35 @@ class PanelConica(tk.Frame):
 
     def _construir_ui(self):
         # ── Título ──────────────────────────────────────────
-        tk.Label(self, text="Análisis de Secciones Cónicas",
+        tk.Label(self, text="📐  Análisis de Secciones Cónicas",
                  font=("Helvetica", 16, "bold"),
                  bg=AZUL_OSCURO, fg=AMARILLO).pack(pady=(15, 5))
-        tk.Label(self, text="Ingresa tu RUT para generar la cónica automáticamente.",
+        tk.Label(self, text="Ingresa un RUT chileno válido y el sistema generará la cónica automáticamente.",
                  font=("Helvetica", 10), bg=AZUL_OSCURO, fg=GRIS_TEXTO).pack()
-        tk.Label(self, text="MAT1186 · UCT · 2026",
-                 font=("Helvetica", 9), bg=AZUL_OSCURO, fg=GRIS_TEXTO).pack(pady=(0, 10))
+
+        # ── Panel de instrucciones ───────────────────────────
+        frame_instruc = tk.Frame(self, bg=AZUL_CLARO, padx=12, pady=8)
+        frame_instruc.pack(fill="x", padx=20, pady=(5, 10))
+        
+        tk.Label(frame_instruc, text="💡 Instrucciones:",
+                 font=("Helvetica", 9, "bold"),
+                 bg=AZUL_CLARO, fg=AMARILLO).pack(anchor="w")
+        
+        instruc_texto = ("1. Ingrese un RUT chileno válido (formato: 12.345.678-9)\n"
+                        "2. Presione 'Analizar' para validar y generar la cónica\n"
+                        "3. El sistema mostrará: validación, ecuación, clasificación, forma canónica\n"
+                        "4. Complete los elementos geométricos durante la defensa oral")
+        
+        tk.Label(frame_instruc, text=instruc_texto,
+                 font=("Helvetica", 8),
+                 bg=AZUL_CLARO, fg=BLANCO,
+                 justify="left").pack(anchor="w", pady=4)
 
         # ── Entrada RUT ──────────────────────────────────────
         frame_rut = tk.Frame(self, bg=AZUL_MEDIO, padx=15, pady=10)
-        frame_rut.pack(fill="x", padx=20, pady=(15, 5))
+        frame_rut.pack(fill="x", padx=20, pady=(0, 5))
 
-        tk.Label(frame_rut, text="Ingrese RUT chileno:",
+        tk.Label(frame_rut, text="🔑 Ingrese RUT chileno:",
                  font=("Helvetica", 11, "bold"),
                  bg=AZUL_MEDIO, fg=BLANCO).grid(row=0, column=0, sticky="w")
 
@@ -49,8 +65,8 @@ class PanelConica(tk.Frame):
         self.entry_rut.insert(0, "12.345.678-9")
         self.entry_rut.bind("<Return>", lambda e: self._procesar())
 
-        tk.Label(frame_rut, text="(formato: 12.345.678-9)",
-                 font=("Helvetica", 8), bg=AZUL_MEDIO, fg=GRIS_TEXTO).grid(row=1, column=1, sticky="w")
+        tk.Label(frame_rut, text="Ejemplos válidos: 8.769.123-K  •  12.456.789-5  •  15.234.567-8",
+                 font=("Helvetica", 8), bg=AZUL_MEDIO, fg=GRIS_TEXTO).grid(row=1, column=1, sticky="w", pady=(2, 0))
 
         btn_frame = tk.Frame(frame_rut, bg=AZUL_MEDIO)
         btn_frame.grid(row=0, column=2, padx=5)
@@ -59,12 +75,12 @@ class PanelConica(tk.Frame):
                   font=("Helvetica", 11, "bold"),
                   bg=AMARILLO, fg=AZUL_OSCURO,
                   relief="flat", padx=12, pady=5,
-                  cursor="hand2").pack(side="left")
+                  cursor="hand2", activebackground="#ffed4e").pack(side="left")
         tk.Button(btn_frame, text="🗑 Limpiar", command=self._limpiar,
                   font=("Helvetica", 10),
                   bg=AZUL_MEDIO, fg=BLANCO,
                   relief="flat", padx=10, pady=5,
-                  cursor="hand2").pack(side="left", padx=(6, 0))
+                  cursor="hand2", activebackground="#4a7aaa").pack(side="left", padx=(6, 0))
 
         # ── Área principal dividida ──────────────────────────
         main_frame = tk.Frame(self, bg=AZUL_OSCURO)
@@ -79,9 +95,13 @@ class PanelConica(tk.Frame):
         right.pack(side="right", fill="both", expand=True)
 
         # ── Texto de pasos ───────────────────────────────────
-        tk.Label(left, text="Desarrollo matemático:",
+        tk.Label(left, text="📝 Desarrollo matemático paso a paso:",
                  font=("Helvetica", 10, "bold"),
                  bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w")
+        
+        tk.Label(left, text="Los pasos muestran el proceso completo desde validación hasta forma canónica",
+                 font=("Helvetica", 8),
+                 bg=AZUL_OSCURO, fg=GRIS_TEXTO).pack(anchor="w", pady=(0, 3))
 
         self.txt_pasos = scrolledtext.ScrolledText(
             left, height=18, width=55,
@@ -93,7 +113,7 @@ class PanelConica(tk.Frame):
         self.txt_pasos.pack(fill="both", expand=True)
 
         # ── Canvas gráfica ───────────────────────────────────
-        tk.Label(right, text="Gráfica:",
+        tk.Label(right, text="📊 Gráfica de la cónica:",
                  font=("Helvetica", 10, "bold"),
                  bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w")
 
@@ -102,16 +122,22 @@ class PanelConica(tk.Frame):
                                  highlightthickness=1,
                                  highlightbackground=AZUL_CLARO)
         self.canvas.pack()
+        
+        # Canvas label - se actualiza con el tipo de cónica
+        self.lbl_canvas_info = tk.Label(right, text="Esperando análisis...",
+                                         font=("Courier", 8),
+                                         bg=AZUL_OSCURO, fg=GRIS_TEXTO)
+        self.lbl_canvas_info.pack()
 
         # ── Tipo de cónica resaltado ─────────────────────────
         self.lbl_tipo = tk.Label(right, text="",
                                   font=("Helvetica", 13, "bold"),
                                   bg=AZUL_OSCURO, fg=VERDE)
-        self.lbl_tipo.pack(pady=3)
+        self.lbl_tipo.pack(pady=5)
 
         self.frame_resumen = tk.Frame(right, bg="#2e567f", padx=8, pady=8)
-        self.frame_resumen.pack(fill="x", pady=(5, 8))
-        tk.Label(self.frame_resumen, text="Resumen rápido:",
+        self.frame_resumen.pack(fill="x", pady=(3, 8))
+        tk.Label(self.frame_resumen, text="📋 Resumen de la cónica:",
                  font=("Helvetica", 10, "bold"),
                  bg="#2e567f", fg=AMARILLO).pack(anchor="w")
         self.lbl_resumen_ecuacion = tk.Label(self.frame_resumen,
@@ -129,9 +155,13 @@ class PanelConica(tk.Frame):
         self.lbl_resumen_tipo.pack(fill="x", pady=(2, 0))
 
         # ── Elementos geométricos (campos para defensa oral) ──
-        tk.Label(right, text="Elementos geométricos (completar en defensa):",
+        tk.Label(right, text="✎ Elementos geométricos (para completar en defensa):",
                  font=("Helvetica", 9, "bold"),
-                 bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w", pady=(5, 2))
+                 bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w", pady=(8, 3))
+        
+        tk.Label(right, text="Los campos estarán habilitados después de analizar un RUT válido",
+                 font=("Helvetica", 7),
+                 bg=AZUL_OSCURO, fg=GRIS_TEXTO).pack(anchor="w", pady=(0, 3))
 
         self.frame_elementos = tk.Frame(right, bg=AZUL_MEDIO, padx=8, pady=8)
         self.frame_elementos.pack(fill="x")
@@ -140,26 +170,30 @@ class PanelConica(tk.Frame):
         for nombre in ["Centro", "Vértice(s)", "Foco(s)", "Radio / a / b", "Directriz"]:
             fila = tk.Frame(self.frame_elementos, bg=AZUL_MEDIO)
             fila.pack(fill="x", pady=1)
-            tk.Label(fila, text=f"{nombre}:", width=14, anchor="w",
+            tk.Label(fila, text=f"{nombre}:", width=15, anchor="w",
                      font=("Helvetica", 8, "bold"),
                      bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(side="left")
-            e = tk.Entry(fila, font=("Courier", 9), width=22,
+            e = tk.Entry(fila, font=("Courier", 9), width=20,
                           bg=BLANCO, fg=AZUL_OSCURO, relief="flat", bd=2)
             e.pack(side="left", padx=3)
             self.entries_elem[nombre] = e
 
         # Botón verificar (para defensa)
-        tk.Button(right, text="✔  Verificar respuestas",
+        btn_row = tk.Frame(right, bg=AZUL_OSCURO)
+        btn_row.pack(pady=6)
+        
+        self.btn_verificar = tk.Button(btn_row, text="✔  Verificar respuestas",
                   command=self._verificar_elementos,
                   font=("Helvetica", 9, "bold"),
                   bg=VERDE, fg="white", relief="flat",
-                  padx=8, pady=3, cursor="hand2").pack(pady=5)
+                  padx=8, pady=3, cursor="hand2")
+        self.btn_verificar.pack(side="left", padx=3)
 
-        self._set_defensa_state(True)
+        self._set_defensa_state(False)
 
         # ── Barra de estado ───────────────────────────────────
-        self.lbl_estado = tk.Label(self, text="Ingrese un RUT y presione Analizar",
-                                    font=("Helvetica", 9), bg=AZUL_OSCURO, fg=GRIS_TEXTO)
+        self.lbl_estado = tk.Label(self, text="👉 Ingrese un RUT válido y presione 'Analizar'",
+                                    font=("Helvetica", 9, "bold"), bg=AZUL_OSCURO, fg=GRIS_TEXTO)
         self.lbl_estado.pack(pady=5)
 
     def _procesar(self):
@@ -199,25 +233,38 @@ class PanelConica(tk.Frame):
                 self.logger.error(f"PanelCónica: Error de cónica para RUT '{rut_str}' — {e}")
             return
 
-        texto = "═══ VALIDACIÓN DEL RUT ═══\n"
+        texto = "╔════════════════════════════════════════════════════════╗\n"
+        texto += "║           VALIDACIÓN DEL RUT CHILENO                  ║\n"
+        texto += "╚════════════════════════════════════════════════════════╝\n\n"
         texto += "\n".join(resultado.pasos_validacion) + "\n\n"
-        texto += "═══ CONSTRUCCIÓN DE LA ECUACIÓN ═══\n"
+        
+        texto += "╔════════════════════════════════════════════════════════╗\n"
+        texto += "║         CONSTRUCCIÓN DE LA ECUACIÓN GENERAL           ║\n"
+        texto += "╚════════════════════════════════════════════════════════╝\n\n"
         texto += "\n".join(resultado.pasos_coeficientes) + "\n\n"
+        
         texto += "Ajustes aplicados:\n"
         for aj in resultado.ajustes:
-            texto += f"  • {aj}\n"
+            texto += f"  ▸ {aj}\n"
         texto += "\n"
-        texto += f"Ecuación general:\n  {resultado.ecuacion_general}\n\n"
-        texto += f"Tipo de cónica: {resultado.tipo_conica}\n\n"
-        texto += "═══ FORMA CANÓNICA ═══\n"
+        texto += f"➤ Ecuación general:\n   {resultado.ecuacion_general}\n\n"
+        
+        texto += f"➤ Tipo de cónica detectado: {resultado.tipo_conica}\n\n"
+        
+        texto += "╔════════════════════════════════════════════════════════╗\n"
+        texto += "║             TRANSFORMACIÓN A FORMA CANÓNICA           ║\n"
+        texto += "╚════════════════════════════════════════════════════════╝\n\n"
         texto += "\n".join(resultado.pasos_canonica) + "\n\n"
-        texto += f"Forma canónica: {resultado.ecuacion_canonica}\n"
+        texto += f"➤ Forma canónica:\n   {resultado.ecuacion_canonica}\n"
 
         self._mostrar_texto(texto)
-        self.lbl_tipo.config(text=f"Cónica: {resultado.tipo_conica}", fg=AMARILLO)
+        
+        # Actualizar información del canvas
+        self.lbl_canvas_info.config(text=f"✓ {resultado.tipo_conica} generada desde RUT {rut_str}", fg=VERDE)
+        self.lbl_tipo.config(text=f"✓ {resultado.tipo_conica}", fg=AMARILLO)
         self.lbl_resumen_ecuacion.config(text=f"Ecuación: {resultado.ecuacion_general}")
         self.lbl_resumen_tipo.config(text=f"Tipo: {resultado.tipo_conica}")
-        self.lbl_estado.config(text=f"✓ RUT válido — {resultado.tipo_conica} detectada", fg=VERDE)
+        self.lbl_estado.config(text=f"✓ RUT válido — {resultado.tipo_conica} detectada — Complete los elementos geométricos", fg=VERDE)
         if self.logger:
             self.logger.info(f"PanelCónica: RUT válido '{rut_str}' → tipo '{resultado.tipo_conica}'")
 

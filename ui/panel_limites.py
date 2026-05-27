@@ -23,17 +23,35 @@ class PanelLimites(tk.Frame):
 
     def _construir_ui(self):
         # ── Título ───────────────────────────────────────────
-        tk.Label(self, text="Análisis de Funciones por Tramos y Límites",
+        tk.Label(self, text="📊  Análisis de Funciones por Tramos y Límites",
                  font=("Helvetica", 14, "bold"),
                  bg=AZUL_OSCURO, fg=AMARILLO).pack(pady=(12, 3))
-        tk.Label(self, text="MAT1186 · Fase 6",
+        tk.Label(self, text="Fase 6: MAT1186",
                  font=("Helvetica", 9), bg=AZUL_OSCURO, fg=GRIS_TEXTO).pack()
+
+        # ── Panel de instrucciones ───────────────────────────
+        frame_instruc = tk.Frame(self, bg=AZUL_CLARO, padx=12, pady=8)
+        frame_instruc.pack(fill="x", padx=20, pady=(5, 10))
+        
+        tk.Label(frame_instruc, text="💡 Instrucciones:",
+                 font=("Helvetica", 9, "bold"),
+                 bg=AZUL_CLARO, fg=AMARILLO).pack(anchor="w")
+        
+        instruc_texto = ("1. Ingrese un RUT chileno válido para generar la función por tramos\n"
+                        "2. El sistema determinará automáticamente el tipo de discontinuidad\n"
+                        "3. Analice: límites laterales, tabla de valores, comportamiento gráfico\n"
+                        "4. Complete los campos vacíos durante la defensa oral")
+        
+        tk.Label(frame_instruc, text=instruc_texto,
+                 font=("Helvetica", 8),
+                 bg=AZUL_CLARO, fg=BLANCO,
+                 justify="left").pack(anchor="w", pady=4)
 
         # ── Entrada RUT ──────────────────────────────────────
         frame_rut = tk.Frame(self, bg=AZUL_MEDIO, padx=15, pady=8)
-        frame_rut.pack(fill="x", padx=20, pady=(10, 5))
+        frame_rut.pack(fill="x", padx=20, pady=(0, 5))
 
-        tk.Label(frame_rut, text="RUT:",
+        tk.Label(frame_rut, text="🔑 RUT chileno:",
                  font=("Helvetica", 11, "bold"),
                  bg=AZUL_MEDIO, fg=BLANCO).grid(row=0, column=0, sticky="w")
 
@@ -49,7 +67,7 @@ class PanelLimites(tk.Frame):
                   font=("Helvetica", 10, "bold"),
                   bg=AMARILLO, fg=AZUL_OSCURO,
                   relief="flat", padx=10, pady=4,
-                  cursor="hand2").grid(row=0, column=2, padx=5)
+                  cursor="hand2", activebackground="#ffed4e").grid(row=0, column=2, padx=5)
 
         # ── Cuerpo principal ──────────────────────────────────
         body = tk.Frame(self, bg=AZUL_OSCURO)
@@ -62,9 +80,13 @@ class PanelLimites(tk.Frame):
         right.pack(side="right", fill="both", expand=True)
 
         # ── Texto de análisis matemático ─────────────────────
-        tk.Label(left, text="Análisis matemático:",
+        tk.Label(left, text="📝 Análisis matemático:",
                  font=("Helvetica", 10, "bold"),
                  bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w")
+        
+        tk.Label(left, text="Validación, tipo de función, cálculo de límites laterales y clasificación",
+                 font=("Helvetica", 8),
+                 bg=AZUL_OSCURO, fg=GRIS_TEXTO).pack(anchor="w", pady=(0, 3))
 
         self.txt_analisis = scrolledtext.ScrolledText(
             left, height=14, width=50,
@@ -76,7 +98,7 @@ class PanelLimites(tk.Frame):
         self.txt_analisis.pack(fill="both", expand=True)
 
         # ── Tabla de valores ─────────────────────────────────
-        tk.Label(left, text="Tabla de valores cercanos al punto a:",
+        tk.Label(left, text="📋 Tabla de valores cercanos al punto a:",
                  font=("Helvetica", 9, "bold"),
                  bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w", pady=(8, 2))
 
@@ -108,7 +130,7 @@ class PanelLimites(tk.Frame):
         self.tabla_tree.pack(fill="x", padx=4, pady=4)
 
         # ── Gráfica canvas ───────────────────────────────────
-        tk.Label(right, text="Gráfica de la función:",
+        tk.Label(right, text="📊 Gráfica de la función:",
                  font=("Helvetica", 10, "bold"),
                  bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w")
 
@@ -117,6 +139,12 @@ class PanelLimites(tk.Frame):
                                      highlightthickness=1,
                                      highlightbackground=AZUL_CLARO)
         self.canvas_lim.pack()
+        
+        # Canvas info label - se actualiza con el tipo de discontinuidad
+        self.lbl_canvas_lim_info = tk.Label(right, text="Esperando análisis...",
+                                             font=("Courier", 8),
+                                             bg=AZUL_OSCURO, fg=GRIS_TEXTO)
+        self.lbl_canvas_lim_info.pack()
 
         # ── Función generada ──────────────────────────────────
         self.lbl_funcion = tk.Label(right, text="",
@@ -126,53 +154,60 @@ class PanelLimites(tk.Frame):
         self.lbl_funcion.pack(pady=(3, 0))
 
         # ── Campos para defensa oral ──────────────────────────
-        tk.Label(right, text="Completar durante la defensa oral:",
+        tk.Label(right, text="✎ Completar durante la defensa oral:",
                  font=("Helvetica", 9, "bold"),
                  bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w", pady=(8, 2))
+        
+        tk.Label(right, text="Demuestre su comprensión del concepto de límite",
+                 font=("Helvetica", 7),
+                 bg=AZUL_OSCURO, fg=GRIS_TEXTO).pack(anchor="w", pady=(0, 3))
 
         frame_defensa = tk.Frame(right, bg=AZUL_MEDIO, padx=8, pady=8)
         frame_defensa.pack(fill="x")
 
         campos = [
-            "Límite por izquierda",
-            "Límite por derecha",
-            "¿Existe el límite? (sí/no)",
-            "f(a) = ",
-            "¿Es continua? (sí/no)",
-            "Tipo de discontinuidad",
-            "Justificación",
+            ("Límite por izquierda:", "lim x→a⁻ f(x) = "),
+            ("Límite por derecha:", "lim x→a⁺ f(x) = "),
+            ("¿Existe el límite?:", "sí / no"),
+            ("f(a) =", "valor o 'no def.'"),
+            ("¿Es continua?:", "sí / no"),
+            ("Tipo de discontinuidad:", "removible / salto / infinita"),
+            ("Justificación matemática:", "descripción breve"),
         ]
         self.entries_defensa = {}
-        for campo in campos:
+        for etiqueta_full, placeholder in campos:
             fila = tk.Frame(frame_defensa, bg=AZUL_MEDIO)
             fila.pack(fill="x", pady=1)
-            tk.Label(fila, text=campo + ":", width=22, anchor="w",
+            tk.Label(fila, text=etiqueta_full, width=22, anchor="w",
                      font=("Helvetica", 7, "bold"),
                      bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(side="left")
             e = tk.Entry(fila, font=("Courier", 8), width=18,
                           bg=BLANCO, fg=AZUL_OSCURO, relief="flat", bd=2)
             e.pack(side="left", padx=2)
-            self.entries_defensa[campo] = e
+            e.insert(0, placeholder)
+            self.entries_defensa[etiqueta_full] = e
 
         # Botones defensa
         btn_row = tk.Frame(right, bg=AZUL_OSCURO)
-        btn_row.pack(pady=4)
+        btn_row.pack(pady=6)
 
         tk.Button(btn_row, text="✔ Verificar",
                   command=self._verificar_defensa,
                   font=("Helvetica", 9, "bold"),
                   bg=VERDE, fg="white", relief="flat",
-                  padx=8, pady=3, cursor="hand2").pack(side="left", padx=4)
+                  padx=8, pady=3, cursor="hand2",
+                  activebackground="#2e8b57").pack(side="left", padx=4)
 
-        tk.Button(btn_row, text="🗑 Limpiar",
+        tk.Button(btn_row, text="🗑 Limpiar campos",
                   command=self._limpiar_defensa,
                   font=("Helvetica", 9),
                   bg=AZUL_MEDIO, fg=GRIS_TEXTO, relief="flat",
-                  padx=8, pady=3, cursor="hand2").pack(side="left", padx=4)
+                  padx=8, pady=3, cursor="hand2",
+                  activebackground="#4a7aaa").pack(side="left", padx=4)
 
         # Estado
-        self.lbl_estado = tk.Label(self, text="Ingrese un RUT y presione Generar función",
-                                    font=("Helvetica", 9),
+        self.lbl_estado = tk.Label(self, text="👉 Ingrese un RUT válido y presione 'Generar función'",
+                                    font=("Helvetica", 9, "bold"),
                                     bg=AZUL_OSCURO, fg=GRIS_TEXTO)
         self.lbl_estado.pack(pady=4)
 
@@ -203,15 +238,25 @@ class PanelLimites(tk.Frame):
         self.tramos = resultado.tramos_info
         self.analisis = resultado
 
-        texto = f"═══ FUNCIÓN GENERADA ═══\n{resultado.descripcion_funcion}\n\n"
-        texto += f"Punto de análisis: a = {resultado.a}\n"
-        texto += f"Selección del caso:\n  {resultado.razon_caso}\n\n"
-        texto += "═══ CÁLCULO DE LÍMITES ═══\n"
+        texto = "╔════════════════════════════════════════════════════════╗\n"
+        texto += "║               FUNCIÓN GENERADA POR TRAMOS            ║\n"
+        texto += "╚════════════════════════════════════════════════════════╝\n\n"
+        texto += f"{resultado.descripcion_funcion}\n\n"
+        texto += f"➤ Punto de análisis: a = {resultado.a}\n\n"
+        texto += "Criterio de selección del caso:\n"
+        texto += f"  {resultado.razon_caso}\n\n"
+        
+        texto += "╔════════════════════════════════════════════════════════╗\n"
+        texto += "║              CÁLCULO DE LÍMITES LATERALES             ║\n"
+        texto += "╚════════════════════════════════════════════════════════╝\n\n"
         texto += "\n".join(resultado.pasos_limites) + "\n"
 
         self._mostrar_texto(texto)
-        self.lbl_funcion.config(text=f"f(x) definida con a={resultado.a}  |  Caso: {resultado.caso_tipo}")
-        self.lbl_estado.config(text=f"✓ Función generada — Discontinuidad: {resultado.tipo_discontinuidad}", fg=VERDE)
+        
+        # Actualizar información del canvas
+        self.lbl_canvas_lim_info.config(text=f"✓ {resultado.tipo_discontinuidad} (Caso: {resultado.caso_tipo})", fg=AMARILLO)
+        self.lbl_funcion.config(text=f"f(x) con a={resultado.a}  │  Tipo: {resultado.caso_tipo}  │  Discontinuidad: {resultado.tipo_discontinuidad}")
+        self.lbl_estado.config(text=f"✓ Función generada — {resultado.tipo_discontinuidad} — Complete los campos de defensa", fg=VERDE)
         if self.logger:
             self.logger.info(f"PanelLímites: Función generada para RUT '{rut_str}' — caso '{resultado.caso_tipo}', tipo '{resultado.tipo_discontinuidad}'")
 
