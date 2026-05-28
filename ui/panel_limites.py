@@ -357,8 +357,8 @@ class PanelLimites(tk.Frame):
 
         base_w = max(visible_w, 1600)
         base_h = max(visible_h, 900)
-        draw_w = int(base_w * self._zoom_factor)
-        draw_h = int(base_h * self._zoom_factor)
+        draw_w = max(int(base_w * self._zoom_factor), visible_w)
+        draw_h = max(int(base_h * self._zoom_factor), visible_h)
         cx, cy = draw_w // 2, draw_h // 2
 
         # Escala dinámica basada en el tamaño del canvas virtual
@@ -617,7 +617,7 @@ class PanelLimites(tk.Frame):
 
         # f(a)
         fa = getattr(a, "f_en_a", None)
-        chk(fa_entry, num_str(fa) + ["nodefinida", "indefinida", "noexiste"])
+        chk(fa_entry, num_str(fa) + ["nodefinida", "indefinida", "noexiste", "no def.", "no def", "no definida", "no definido", "nd"])
 
         # Continua
         cont_ok = ["sí", "si", "s", "yes", "continua"] if getattr(a, "es_continua", False) else ["no", "n", "nocontinua", "discontinua"]

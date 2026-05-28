@@ -337,8 +337,8 @@ class PanelConica(tk.Frame):
 
         base_w = max(visible_w, 1600)
         base_h = max(visible_h, 900)
-        draw_w = int(base_w * self._zoom_factor)
-        draw_h = int(base_h * self._zoom_factor)
+        draw_w = max(int(base_w * self._zoom_factor), visible_w)
+        draw_h = max(int(base_h * self._zoom_factor), visible_h)
         cx, cy = draw_w // 2, draw_h // 2
 
         # Escala dinámica basada en el tamaño del canvas virtual
