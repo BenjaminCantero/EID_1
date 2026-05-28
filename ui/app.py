@@ -26,7 +26,7 @@ class AppEID(tk.Tk):
         barra.pack_propagate(False)
 
         tk.Label(barra,
-                 text="🎓  EID N°1 — MAT1186 · Introducción al Cálculo · UCT 2026",
+                 text="EID N°1 — MAT1186 · Introducción al Cálculo · UCT 2026",
                  font=("Helvetica", 12, "bold"),
                  bg=AZUL_MEDIO, fg=AMARILLO).pack(side="left", padx=15, pady=8)
 
@@ -41,10 +41,10 @@ class AppEID(tk.Tk):
         self.panel_conica = PanelConica(self.notebook,
                                          cambiar_tab_callback=self._ir_limites,
                                          logger=self.logger)
-        self.notebook.add(self.panel_conica, text="  📐  Secciones Cónicas  ")
+        self.notebook.add(self.panel_conica, text="Secciones Cónicas")
 
         self.panel_limites = PanelLimites(self.notebook, logger=self.logger)
-        self.notebook.add(self.panel_limites, text="  📊  Funciones y Límites  ")
+        self.notebook.add(self.panel_limites, text="Funciones y Límites")
 
         self._agregar_tab_acerca()
 
@@ -53,7 +53,7 @@ class AppEID(tk.Tk):
 
     def _agregar_tab_acerca(self):
         frame = tk.Frame(self.notebook, bg=AZUL_OSCURO)
-        self.notebook.add(frame, text="  ℹ  Acerca del Proyecto  ")
+        self.notebook.add(frame, text="Acerca del Proyecto")
 
         # Frame central para contenido
         central_frame = tk.Frame(frame, bg=AZUL_OSCURO)
@@ -61,7 +61,7 @@ class AppEID(tk.Tk):
 
         # ── Título principal ────────────────────────────────────
         tk.Label(central_frame,
-                 text="🎓 EID N°1 — Cónicas y Límites",
+                 text="EID N°1 — Cónicas y Límites",
                  font=("Helvetica", 20, "bold"),
                  bg=AZUL_OSCURO, fg=AMARILLO).pack(pady=(0, 15))
 
@@ -78,10 +78,10 @@ class AppEID(tk.Tk):
         info_frame.pack(fill="x", pady=(0, 20))
 
         info_texto = (
-            "📚  MAT1186 — Introducción al Cálculo\n"
-            "🏫  Universidad Católica de Temuco\n"
-            "👥  Ing. Civil en Informática — 2026\n"
-            "🔧  Python 3.8+ • Tkinter • Implementación manual"
+            "MAT1186 — Introducción al Cálculo\n"
+            "Universidad Católica de Temuco\n"
+            "Ing. Civil en Informática — 2026\n"
+            "Python 3.8+ • Tkinter • Implementación manual"
         )
         tk.Label(info_frame, text=info_texto,
                  font=("Helvetica", 11),
@@ -112,7 +112,7 @@ class AppEID(tk.Tk):
 
         # ── Autores ────────────────────────────────────────────
         tk.Label(central_frame,
-                 text="👨‍💻  Autores",
+                 text="Autores",
                  font=("Helvetica", 11, "bold"),
                  bg=AZUL_OSCURO, fg=AMARILLO).pack(pady=(0, 8))
 

@@ -218,7 +218,7 @@ TAB_PADDING = [15, 6]
 # ══════════════════════════════════════════════════════════════════════════
 
 TITULO_VENTANA = "EID MAT1186 — Cónicas y Límites · UCT 2026"
-TITULO_BARRA = "🎓  EID N°1 — MAT1186 · Introducción al Cálculo · UCT 2026"
+TITULO_BARRA = "EID N°1 — MAT1186 · Introducción al Cálculo · UCT 2026"
 SUBTITULO_BARRA = "Versión 2026 · Benjamin C. Eduardo D. Ricardo G."
 
 TITULO_EID = "Evaluación Integrada de Desempeño N°1"

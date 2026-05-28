@@ -21,6 +21,8 @@ class PanelConica(tk.Frame):
         self.A = self.B = self.C = self.D = self.E = 0
         self.tipo = ""
         self.elementos = {}
+        self._ultima_grafica = None
+        self._zoom_factor = 1.0
         self._construir_ui()
 
     def _construir_ui(self):
@@ -112,7 +114,7 @@ class PanelConica(tk.Frame):
         # Permitir scroll con la rueda del ratón
         def _on_mousewheel(event):
             right_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-        right_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        right_canvas.bind("<MouseWheel>", _on_mousewheel)
 
         # ── Texto de pasos ───────────────────────────────────
         step_label_frame = tk.Frame(left, bg=AZUL_MEDIO, padx=10, pady=8)
@@ -145,12 +147,31 @@ class PanelConica(tk.Frame):
                  font=("Helvetica", 8),
                  bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(anchor="w", pady=(2, 0))
 
-        self.canvas = tk.Canvas(right,
+        graph_canvas_frame = tk.Frame(right, bg=AZUL_OSCURO)
+        graph_canvas_frame.pack(fill="both", expand=True, pady=(0, 5))
+        graph_canvas_frame.columnconfigure(0, weight=1)
+        graph_canvas_frame.rowconfigure(0, weight=1)
+
+        self.canvas = tk.Canvas(graph_canvas_frame,
                                  bg="#051020", relief="flat", bd=2,
                                  highlightthickness=1,
-                                 highlightbackground=AZUL_CLARO)
-        self.canvas.pack(fill="both", expand=True, pady=(0, 5))
-        
+                                 highlightbackground=AZUL_CLARO,
+                                 xscrollincrement=10,
+                                 yscrollincrement=10)
+        vbar = ttk.Scrollbar(graph_canvas_frame, orient="vertical", command=self.canvas.yview)
+        hbar = ttk.Scrollbar(graph_canvas_frame, orient="horizontal", command=self.canvas.xview)
+        self.canvas.configure(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
+
+        self.canvas.grid(row=0, column=0, sticky="nsew")
+        vbar.grid(row=0, column=1, sticky="ns")
+        hbar.grid(row=1, column=0, sticky="ew")
+
+        self.canvas.bind("<Configure>", self._on_canvas_resize)
+        self.canvas.bind("<MouseWheel>", self._on_graph_mousewheel)
+        self.canvas.bind("<Shift-MouseWheel>", self._on_graph_shift_mousewheel)
+        self.canvas.bind("<ButtonPress-1>", lambda e: self.canvas.scan_mark(e.x, e.y))
+        self.canvas.bind("<B1-Motion>", lambda e: self.canvas.scan_dragto(e.x, e.y, gain=1))
+
         # Canvas label - se actualiza con el tipo de cónica
         self.lbl_canvas_info = tk.Label(right, text="Esperando análisis...",
                                          font=("Courier", 8),
@@ -183,7 +204,7 @@ class PanelConica(tk.Frame):
         self.lbl_resumen_tipo.pack(fill="x", pady=(2, 0))
 
         # ── Elementos geométricos (campos para defensa oral) ──
-        tk.Label(right, text="✎ Elementos geométricos (para completar en defensa):",
+        tk.Label(right, text="Elementos geométricos (para completar en defensa):",
                  font=("Helvetica", 9, "bold"),
                  bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w", pady=(8, 3))
         
@@ -210,7 +231,7 @@ class PanelConica(tk.Frame):
         btn_row = tk.Frame(right, bg=AZUL_OSCURO)
         btn_row.pack(pady=6)
         
-        self.btn_verificar = tk.Button(btn_row, text="✔  Verificar respuestas",
+        self.btn_verificar = tk.Button(btn_row, text="Verificar respuestas",
                   command=self._verificar_elementos,
                   font=("Helvetica", 9, "bold"),
                   bg=VERDE, fg="white", relief="flat",
@@ -220,7 +241,7 @@ class PanelConica(tk.Frame):
         self._set_defensa_state(False)
 
         # ── Barra de estado ───────────────────────────────────
-        self.lbl_estado = tk.Label(self, text="👉 Ingrese un RUT válido y presione 'Analizar'",
+        self.lbl_estado = tk.Label(self, text="Ingrese un RUT válido y presione 'Analizar'",
                                     font=("Helvetica", 9, "bold"), bg=AZUL_OSCURO, fg=GRIS_TEXTO)
         self.lbl_estado.pack(pady=5)
 
@@ -230,7 +251,7 @@ class PanelConica(tk.Frame):
             self.logger.info(f"PanelCónica: Inicia análisis de RUT '{rut_str}'")
 
         if not rut_str:
-            self.lbl_estado.config(text="❗ Debes ingresar un RUT.", fg=ROJO)
+            self.lbl_estado.config(text="Debes ingresar un RUT.", fg=ROJO)
             self._limpiar_resultado()
             if self.logger:
                 self.logger.warning("PanelCónica: RUT vacío ingresado")
@@ -242,7 +263,7 @@ class PanelConica(tk.Frame):
             texto = "═══ VALIDACIÓN DEL RUT ═══\n"
             texto += "\n".join(getattr(e, 'detalles', [str(e)])) + "\n"
             self._mostrar_texto(texto)
-            self.lbl_estado.config(text="❌ RUT inválido", fg=ROJO)
+            self.lbl_estado.config(text="RUT inválido", fg=ROJO)
             self.lbl_tipo.config(text="")
             self.lbl_resumen_ecuacion.config(text="Ecuación: —")
             self.lbl_resumen_tipo.config(text="Tipo: —")
@@ -251,8 +272,8 @@ class PanelConica(tk.Frame):
                 self.logger.warning(f"PanelCónica: RUT inválido '{rut_str}'")
             return
         except ConicaInvalidaError as e:
-            self._mostrar_texto(f"❌ Error en cónica:\n{e}\n")
-            self.lbl_estado.config(text="❌ Cónica inválida", fg=ROJO)
+            self._mostrar_texto(f"Error en cónica:\n{e}\n")
+            self.lbl_estado.config(text="Cónica inválida", fg=ROJO)
             self.lbl_tipo.config(text="")
             self.lbl_resumen_ecuacion.config(text="Ecuación: —")
             self.lbl_resumen_tipo.config(text="Tipo: —")
@@ -288,11 +309,11 @@ class PanelConica(tk.Frame):
         self._mostrar_texto(texto)
         
         # Actualizar información del canvas
-        self.lbl_canvas_info.config(text=f"✓ {resultado.tipo_conica} generada desde RUT {rut_str}", fg=VERDE)
-        self.lbl_tipo.config(text=f"✓ {resultado.tipo_conica}", fg=AMARILLO)
+        self.lbl_canvas_info.config(text=f"Cónica generada desde RUT {rut_str}", fg=VERDE)
+        self.lbl_tipo.config(text=f"Tipo: {resultado.tipo_conica}", fg=AMARILLO)
         self.lbl_resumen_ecuacion.config(text=f"Ecuación: {resultado.ecuacion_general}")
         self.lbl_resumen_tipo.config(text=f"Tipo: {resultado.tipo_conica}")
-        self.lbl_estado.config(text=f"✓ RUT válido — {resultado.tipo_conica} detectada — Complete los elementos geométricos", fg=VERDE)
+        self.lbl_estado.config(text=f"RUT válido — {resultado.tipo_conica} detectada — Complete los elementos geométricos", fg=VERDE)
         if self.logger:
             self.logger.info(f"PanelCónica: RUT válido '{rut_str}' → tipo '{resultado.tipo_conica}'")
 
@@ -307,25 +328,29 @@ class PanelConica(tk.Frame):
                        resultado.elementos_geometricos)
 
     def _graficar(self, A, B, C, D, E, tipo, elementos):
+        self._ultima_grafica = (A, B, C, D, E, tipo, elementos)
         self.canvas.delete("all")
-        # Canvas más grande para mejor visibilidad
-        w, h = self.canvas.winfo_width(), self.canvas.winfo_height()
-        if w <= 1:  # Canvas no ha sido renderizado aún
-            w, h = 400, 350
-        
-        cx, cy = w // 2, h // 2
-        
-        # Escala dinámica basada en el tamaño del canvas
-        # Aprox. 8 unidades en cada dirección = 80% del canvas width
-        ancho_disponible = w * 0.8
+        # Canvas visible actual
+        visible_w, visible_h = self.canvas.winfo_width(), self.canvas.winfo_height()
+        if visible_w <= 1 or visible_h <= 1:
+            visible_w, visible_h = 400, 350
+
+        base_w = max(visible_w, 1600)
+        base_h = max(visible_h, 900)
+        draw_w = int(base_w * self._zoom_factor)
+        draw_h = int(base_h * self._zoom_factor)
+        cx, cy = draw_w // 2, draw_h // 2
+
+        # Escala dinámica basada en el tamaño del canvas virtual
+        ancho_disponible = draw_w * 0.8
         escala = ancho_disponible / 16  # 16 unidades totales (-8 a +8)
 
         # Fondo más oscuro para contraste
-        self.canvas.create_rectangle(0, 0, w, h, fill="#051020", outline="")
+        self.canvas.create_rectangle(0, 0, draw_w, draw_h, fill="#051020", outline="")
 
         # Ejes con mejor visibilidad
-        self.canvas.create_line(10, cy, w - 10, cy, fill="#4a7aaa", width=1.5)
-        self.canvas.create_line(cx, 10, cx, h - 10, fill="#4a7aaa", width=1.5)
+        self.canvas.create_line(10, cy, draw_w - 10, cy, fill="#4a7aaa", width=1.5)
+        self.canvas.create_line(cx, 10, cx, draw_h - 10, fill="#4a7aaa", width=1.5)
 
         # Grid sutil para mejor orientación
         for i in range(-8, 9):
@@ -334,8 +359,8 @@ class PanelConica(tk.Frame):
             px = cx + i * escala
             py = cy + i * escala
             # Grid de fondo muy sutil
-            self.canvas.create_line(px, 10, px, h - 10, fill="#1a2f4a", width=0.5)
-            self.canvas.create_line(10, py, w - 10, py, fill="#1a2f4a", width=0.5)
+            self.canvas.create_line(px, 10, px, draw_h - 10, fill="#1a2f4a", width=0.5)
+            self.canvas.create_line(10, py, draw_w - 10, py, fill="#1a2f4a", width=0.5)
 
         # Marcas en ejes con mejor contraste
         for i in range(-8, 9):
@@ -352,7 +377,7 @@ class PanelConica(tk.Frame):
                 self.canvas.create_text(cx - 14, py, text=str(-i),
                                          font=("Courier", 7, "bold"), fill="#8aaaaa")
 
-        self.canvas.create_text(w - 12, cy - 15, text="x",
+        self.canvas.create_text(draw_w - 12, cy - 15, text="x",
                                  font=("Courier", 10, "bold"), fill="#6a9aaa")
         self.canvas.create_text(cx + 12, 12, text="y",
                                  font=("Courier", 10, "bold"), fill="#6a9aaa")
@@ -388,7 +413,7 @@ class PanelConica(tk.Frame):
                     x1, y1 = pts_pantalla[i]
                     x2, y2 = pts_pantalla[i + 1]
                     # Validar que los puntos están dentro del canvas
-                    if self._punto_valido(x1, y1, w, h) and self._punto_valido(x2, y2, w, h):
+                    if self._punto_valido(x1, y1, draw_w, draw_h) and self._punto_valido(x2, y2, draw_w, draw_h):
                         self.canvas.create_line(x1, y1, x2, y2,
                                                  fill=color_conica, width=3, capstyle="round", joinstyle="round")
         else:
@@ -397,16 +422,69 @@ class PanelConica(tk.Frame):
             for i in range(len(pts_pantalla) - 1):
                 x1, y1 = pts_pantalla[i]
                 x2, y2 = pts_pantalla[i + 1]
-                if self._punto_valido(x1, y1, w, h) and self._punto_valido(x2, y2, w, h):
+                if self._punto_valido(x1, y1, draw_w, draw_h) and self._punto_valido(x2, y2, draw_w, draw_h):
                     self.canvas.create_line(x1, y1, x2, y2,
                                              fill=color_conica, width=3, capstyle="round", joinstyle="round")
 
         # Marcar elementos geométricos con mejor visibilidad
-        self._dibujar_elementos(elementos, mundo_pantalla, w, h)
+        self._dibujar_elementos(elementos, mundo_pantalla, draw_w, draw_h)
+        self.canvas.configure(scrollregion=(0, 0, draw_w, draw_h))
 
-        # Leyenda mejorada
-        self.canvas.create_text(w // 2, h - 8, text=tipo,
-                                 font=("Helvetica", 10, "bold"), fill=color_conica)
+        # Centrar la vista inicial en la región de dibujo
+        if draw_w > visible_w:
+            self.canvas.xview_moveto((draw_w - visible_w) / 2 / draw_w)
+        if draw_h > visible_h:
+            self.canvas.yview_moveto((draw_h - visible_h) / 2 / draw_h)
+
+    def _on_canvas_resize(self, event):
+        if self._ultima_grafica:
+            self._graficar(*self._ultima_grafica)
+
+    def _on_graph_mousewheel(self, event):
+        self._zoom_graph(event)
+        return "break"
+
+    def _on_graph_shift_mousewheel(self, event):
+        self.canvas.xview_scroll(int(-1*(event.delta/120)), "units")
+        return "break"
+
+    def _zoom_graph(self, event):
+        if not self._ultima_grafica:
+            return
+
+        visible_w, visible_h = self.canvas.winfo_width(), self.canvas.winfo_height()
+        if visible_w <= 1 or visible_h <= 1:
+            visible_w, visible_h = 400, 350
+
+        old_base_w = max(visible_w, 1600)
+        old_base_h = max(visible_h, 900)
+        old_draw_w = int(old_base_w * self._zoom_factor)
+        old_draw_h = int(old_base_h * self._zoom_factor)
+        old_cx, old_cy = old_draw_w // 2, old_draw_h // 2
+        old_escala = old_draw_w * 0.8 / 16
+
+        canvas_x = self.canvas.canvasx(event.x)
+        canvas_y = self.canvas.canvasy(event.y)
+        world_x = (canvas_x - old_cx) / old_escala
+        world_y = (old_cy - canvas_y) / old_escala
+
+        factor = 1.1 if event.delta > 0 else 0.9
+        self._zoom_factor = max(0.3, min(self._zoom_factor * factor, 3.0))
+
+        new_draw_w = int(old_base_w * self._zoom_factor)
+        new_draw_h = int(old_base_h * self._zoom_factor)
+        new_cx, new_cy = new_draw_w // 2, new_draw_h // 2
+        new_escala = new_draw_w * 0.8 / 16
+
+        self._graficar(*self._ultima_grafica)
+
+        new_canvas_x = new_cx + world_x * new_escala
+        new_canvas_y = new_cy - world_y * new_escala
+
+        if new_draw_w > visible_w:
+            self.canvas.xview_moveto(max(0.0, min((new_canvas_x - event.x) / new_draw_w, 1.0)))
+        if new_draw_h > visible_h:
+            self.canvas.yview_moveto(max(0.0, min((new_canvas_y - event.y) / new_draw_h, 1.0)))
 
     def _punto_valido(self, x, y, w, h):
         """Verifica si un punto está dentro del canvas con margen."""

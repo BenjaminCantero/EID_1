@@ -19,6 +19,9 @@ class PanelLimites(tk.Frame):
         self.tramos = None
         self.analisis = None
         self.a = 0
+        self._ultimo_tramos = None
+        self._ultimo_analisis = None
+        self._zoom_factor = 1.0
         self._construir_ui()
 
     def _construir_ui(self):
@@ -27,7 +30,7 @@ class PanelLimites(tk.Frame):
         header.pack(fill="x", padx=0, pady=0)
         header.pack_propagate(False)
 
-        tk.Label(header, text="📊  ANÁLISIS DE FUNCIONES Y LÍMITES",
+        tk.Label(header, text="ANÁLISIS DE FUNCIONES Y LÍMITES",
                  font=("Helvetica", 14, "bold"),
                  bg=AZUL_MEDIO, fg=AMARILLO).pack(anchor="w", padx=20, pady=(10, 5))
         tk.Label(header, text="Ingrese un RUT para analizar funciones por tramos y comportamiento de límites",
@@ -59,7 +62,7 @@ class PanelLimites(tk.Frame):
         btn_frame = tk.Frame(frame_rut, bg=AZUL_CLARO)
         btn_frame.grid(row=1, column=2, padx=5, sticky="w")
 
-        tk.Button(btn_frame, text="▶  Generar función",
+        tk.Button(btn_frame, text="Generar función",
                   command=self._procesar,
                   font=("Helvetica", 10, "bold"),
                   bg=AMARILLO, fg=AZUL_OSCURO,
@@ -109,7 +112,7 @@ class PanelLimites(tk.Frame):
         # Permitir scroll con la rueda del ratón
         def _on_mousewheel(event):
             right_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-        right_canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        right_canvas.bind("<MouseWheel>", _on_mousewheel)
 
         # ── Texto de análisis matemático ─────────────────────
         analysis_label_frame = tk.Frame(left, bg=AZUL_MEDIO, padx=10, pady=8)
@@ -180,12 +183,31 @@ class PanelLimites(tk.Frame):
                  font=("Helvetica", 8),
                  bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(anchor="w", pady=(2, 0))
 
-        self.canvas_lim = tk.Canvas(right,
+        graph_canvas_frame = tk.Frame(right, bg=AZUL_OSCURO)
+        graph_canvas_frame.pack(fill="both", expand=True)
+        graph_canvas_frame.columnconfigure(0, weight=1)
+        graph_canvas_frame.rowconfigure(0, weight=1)
+
+        self.canvas_lim = tk.Canvas(graph_canvas_frame,
                                      bg="#051020", relief="flat", bd=2,
                                      highlightthickness=1,
-                                     highlightbackground=AZUL_CLARO)
-        self.canvas_lim.pack(fill="both", expand=True)
-        
+                                     highlightbackground=AZUL_CLARO,
+                                     xscrollincrement=10,
+                                     yscrollincrement=10)
+        vbar = ttk.Scrollbar(graph_canvas_frame, orient="vertical", command=self.canvas_lim.yview)
+        hbar = ttk.Scrollbar(graph_canvas_frame, orient="horizontal", command=self.canvas_lim.xview)
+        self.canvas_lim.configure(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
+
+        self.canvas_lim.grid(row=0, column=0, sticky="nsew")
+        vbar.grid(row=0, column=1, sticky="ns")
+        hbar.grid(row=1, column=0, sticky="ew")
+
+        self.canvas_lim.bind("<Configure>", self._on_canvas_resize)
+        self.canvas_lim.bind("<MouseWheel>", self._on_graph_mousewheel)
+        self.canvas_lim.bind("<Shift-MouseWheel>", self._on_graph_shift_mousewheel)
+        self.canvas_lim.bind("<ButtonPress-1>", lambda e: self.canvas_lim.scan_mark(e.x, e.y))
+        self.canvas_lim.bind("<B1-Motion>", lambda e: self.canvas_lim.scan_dragto(e.x, e.y, gain=1))
+
         # Canvas info label - se actualiza con el tipo de discontinuidad
         self.lbl_canvas_lim_info = tk.Label(right, text="Esperando análisis...",
                                              font=("Courier", 8),
@@ -200,7 +222,7 @@ class PanelLimites(tk.Frame):
         self.lbl_funcion.pack(pady=(3, 0))
 
         # ── Campos para defensa oral ──────────────────────────
-        tk.Label(right, text="✎ Completar durante la defensa oral:",
+        tk.Label(right, text="Completar durante la defensa oral:",
                  font=("Helvetica", 9, "bold"),
                  bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w", pady=(8, 2))
         
@@ -212,39 +234,42 @@ class PanelLimites(tk.Frame):
         frame_defensa.pack(fill="x")
 
         campos = [
-            ("Límite por izquierda:", "lim x→a⁻ f(x) = "),
-            ("Límite por derecha:", "lim x→a⁺ f(x) = "),
-            ("¿Existe el límite?:", "sí / no"),
-            ("f(a) =", "valor o 'no def.'"),
-            ("¿Es continua?:", "sí / no"),
-            ("Tipo de discontinuidad:", "removible / salto / infinita"),
-            ("Justificación matemática:", "descripción breve"),
+            ("lim_izq", "Límite por izquierda:", "lim x→a⁻ f(x) = "),
+            ("lim_der", "Límite por derecha:", "lim x→a⁺ f(x) = "),
+            ("lim_existe", "¿Existe el límite?:", "sí / no"),
+            ("fa", "f(a) =", "valor o 'no def.'"),
+            ("continua", "¿Es continua?:", "sí / no"),
+            ("tipo_disc", "Tipo de discontinuidad:", "removible / salto / infinita"),
+            ("justificacion", "Justificación matemática:", "descripción breve"),
         ]
         self.entries_defensa = {}
-        for etiqueta_full, placeholder in campos:
+        for key, etiqueta_full, placeholder in campos:
             fila = tk.Frame(frame_defensa, bg=AZUL_MEDIO)
             fila.pack(fill="x", pady=1)
             tk.Label(fila, text=etiqueta_full, width=22, anchor="w",
                      font=("Helvetica", 7, "bold"),
                      bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(side="left")
             e = tk.Entry(fila, font=("Courier", 8), width=18,
-                          bg=BLANCO, fg=AZUL_OSCURO, relief="flat", bd=2)
+                          bg=BLANCO, fg="#444444", relief="flat", bd=2)
             e.pack(side="left", padx=2)
             e.insert(0, placeholder)
-            self.entries_defensa[etiqueta_full] = e
+            e._placeholder_text = placeholder
+            e.bind("<FocusIn>", lambda event, entry=e: self._clear_placeholder(entry))
+            e.bind("<FocusOut>", lambda event, entry=e: self._restore_placeholder(entry))
+            self.entries_defensa[key] = e
 
         # Botones defensa
         btn_row = tk.Frame(right, bg=AZUL_OSCURO)
         btn_row.pack(pady=6)
 
-        tk.Button(btn_row, text="✔ Verificar",
+        tk.Button(btn_row, text="Verificar",
                   command=self._verificar_defensa,
                   font=("Helvetica", 9, "bold"),
                   bg=VERDE, fg="white", relief="flat",
                   padx=8, pady=3, cursor="hand2",
                   activebackground="#2e8b57").pack(side="left", padx=4)
 
-        tk.Button(btn_row, text="🗑 Limpiar campos",
+        tk.Button(btn_row, text="Limpiar campos",
                   command=self._limpiar_defensa,
                   font=("Helvetica", 9),
                   bg=AZUL_MEDIO, fg=GRIS_TEXTO, relief="flat",
@@ -252,7 +277,7 @@ class PanelLimites(tk.Frame):
                   activebackground="#4a7aaa").pack(side="left", padx=4)
 
         # Estado
-        self.lbl_estado = tk.Label(self, text="👉 Ingrese un RUT válido y presione 'Generar función'",
+        self.lbl_estado = tk.Label(self, text="Ingrese un RUT válido y presione 'Generar función'",
                                     font=("Helvetica", 9, "bold"),
                                     bg=AZUL_OSCURO, fg=GRIS_TEXTO)
         self.lbl_estado.pack(pady=4)
@@ -323,20 +348,25 @@ class PanelLimites(tk.Frame):
         self._limpiar_defensa()
 
     def _graficar(self, tramos, analisis):
+        self._ultimo_tramos = tramos
+        self._ultimo_analisis = analisis
         self.canvas_lim.delete("all")
-        w, h = self.canvas_lim.winfo_width(), self.canvas_lim.winfo_height()
-        if w <= 1:  # Canvas no ha sido renderizado aún
-            w, h = 400, 350
-        
-        cx, cy = w // 2, h // 2
-        
-        # Escala dinámica basada en el tamaño del canvas
-        # Aprox. 10 unidades en cada dirección = 80% del canvas width
-        ancho_disponible = w * 0.8
+        visible_w, visible_h = self.canvas_lim.winfo_width(), self.canvas_lim.winfo_height()
+        if visible_w <= 1 or visible_h <= 1:
+            visible_w, visible_h = 400, 350
+
+        base_w = max(visible_w, 1600)
+        base_h = max(visible_h, 900)
+        draw_w = int(base_w * self._zoom_factor)
+        draw_h = int(base_h * self._zoom_factor)
+        cx, cy = draw_w // 2, draw_h // 2
+
+        # Escala dinámica basada en el tamaño del canvas virtual
+        ancho_disponible = draw_w * 0.8
         escala = ancho_disponible / 20  # 20 unidades totales (-10 a +10)
 
         # Fondo más oscuro para contraste
-        self.canvas_lim.create_rectangle(0, 0, w, h, fill="#051020", outline="")
+        self.canvas_lim.create_rectangle(0, 0, draw_w, draw_h, fill="#051020", outline="")
 
         # Grid sutil para mejor orientación
         for i in range(-10, 11):
@@ -345,12 +375,12 @@ class PanelLimites(tk.Frame):
             px = cx + i * escala
             py = cy + i * escala
             # Grid de fondo muy sutil
-            self.canvas_lim.create_line(px, 10, px, h - 10, fill="#1a2f4a", width=0.5)
-            self.canvas_lim.create_line(10, py, w - 10, py, fill="#1a2f4a", width=0.5)
+            self.canvas_lim.create_line(px, 10, px, draw_h - 10, fill="#1a2f4a", width=0.5)
+            self.canvas_lim.create_line(10, py, draw_w - 10, py, fill="#1a2f4a", width=0.5)
 
         # Ejes con mejor visibilidad
-        self.canvas_lim.create_line(10, cy, w - 10, cy, fill="#4a7aaa", width=1.5)
-        self.canvas_lim.create_line(cx, 10, cx, h - 10, fill="#4a7aaa", width=1.5)
+        self.canvas_lim.create_line(10, cy, draw_w - 10, cy, fill="#4a7aaa", width=1.5)
+        self.canvas_lim.create_line(cx, 10, cx, draw_h - 10, fill="#4a7aaa", width=1.5)
 
         # Marcas en ejes con mejor contraste
         for i in range(-10, 11):
@@ -367,7 +397,7 @@ class PanelLimites(tk.Frame):
                 self.canvas_lim.create_text(cx - 14, py, text=str(-i),
                                             font=("Courier", 7, "bold"), fill="#8aaaaa")
 
-        self.canvas_lim.create_text(w - 12, cy - 15, text="x",
+        self.canvas_lim.create_text(draw_w - 12, cy - 15, text="x",
                                      font=("Courier", 10, "bold"), fill="#6a9aaa")
         self.canvas_lim.create_text(cx + 12, 12, text="y",
                                      font=("Courier", 10, "bold"), fill="#6a9aaa")
@@ -378,26 +408,26 @@ class PanelLimites(tk.Frame):
         if caso == "infinita":
             ax = cx + a * escala
             # Asíntota punteada roja más gruesa
-            self.canvas_lim.create_line(ax, 5, ax, h - 5,
+            self.canvas_lim.create_line(ax, 5, ax, draw_h - 5,
                                          fill="#ff6b6b", width=2, dash=(6, 4))
             self.canvas_lim.create_text(ax + 8, 18,
                                          text=f"x={a}", font=("Courier", 8, "bold"), fill="#ff6b6b")
 
         # Obtener segmentos
-        segmentos, pantalla_fn = puntos_grafica_limite(tramos, w, h, rango_x=8)
+        segmentos, pantalla_fn = puntos_grafica_limite(tramos, draw_w, draw_h, rango_x=8)
         
         # Dibujar función con grosor mejorado y colores vibrantes
         for seg in segmentos:
             x1, y1, x2, y2 = seg
             # Validar que los puntos están dentro del canvas
-            if (10 <= x1 <= w - 10 and 10 <= y1 <= h - 10 and
-                10 <= x2 <= w - 10 and 10 <= y2 <= h - 10):
+            if (10 <= x1 <= draw_w - 10 and 10 <= y1 <= draw_h - 10 and
+                10 <= x2 <= draw_w - 10 and 10 <= y2 <= draw_h - 10):
                 self.canvas_lim.create_line(x1, y1, x2, y2, 
                                             fill="#00ffaa", width=3, 
                                             capstyle="round", joinstyle="round")
 
         # Marcar visualmente la posición x = a en el eje (etiqueta)
-        self.canvas_lim.create_text(cx + a * escala, h - 20,
+        self.canvas_lim.create_text(cx + a * escala, draw_h - 20,
                                      text=f"a={a}", font=("Courier", 9, "bold"), fill=NARANJA)
 
         # Discontinuidad removible: dibujar hueco en (a, límite)
@@ -445,9 +475,65 @@ class PanelLimites(tk.Frame):
                                              font=("Courier", 7, "bold"), fill="#66ff99")
 
         # Leyenda mejorada
-        self.canvas_lim.create_text(w // 2, h - 12,
+        self.canvas_lim.create_text(draw_w // 2, draw_h - 12,
                                      text=f"Discontinuidad: {getattr(analisis, 'tipo_discontinuidad', '')}",
                                      font=("Helvetica", 10, "bold"), fill="#00ffaa")
+        self.canvas_lim.configure(scrollregion=(0, 0, draw_w, draw_h))
+
+        if draw_w > visible_w:
+            self.canvas_lim.xview_moveto((draw_w - visible_w) / 2 / draw_w)
+        if draw_h > visible_h:
+            self.canvas_lim.yview_moveto((draw_h - visible_h) / 2 / draw_h)
+
+    def _on_canvas_resize(self, event):
+        if self._ultimo_tramos and self._ultimo_analisis:
+            self._graficar(self._ultimo_tramos, self._ultimo_analisis)
+
+    def _on_graph_mousewheel(self, event):
+        self._zoom_graph(event)
+        return "break"
+
+    def _on_graph_shift_mousewheel(self, event):
+        self.canvas_lim.xview_scroll(int(-1*(event.delta/120)), "units")
+        return "break"
+
+    def _zoom_graph(self, event):
+        if not self._ultimo_tramos or not self._ultimo_analisis:
+            return
+
+        visible_w, visible_h = self.canvas_lim.winfo_width(), self.canvas_lim.winfo_height()
+        if visible_w <= 1 or visible_h <= 1:
+            visible_w, visible_h = 400, 350
+
+        old_base_w = max(visible_w, 1600)
+        old_base_h = max(visible_h, 900)
+        old_draw_w = int(old_base_w * self._zoom_factor)
+        old_draw_h = int(old_base_h * self._zoom_factor)
+        old_cx, old_cy = old_draw_w // 2, old_draw_h // 2
+        old_escala = old_draw_w * 0.8 / 20
+
+        canvas_x = self.canvas_lim.canvasx(event.x)
+        canvas_y = self.canvas_lim.canvasy(event.y)
+        world_x = (canvas_x - old_cx) / old_escala
+        world_y = (old_cy - canvas_y) / old_escala
+
+        factor = 1.1 if event.delta > 0 else 0.9
+        self._zoom_factor = max(0.3, min(self._zoom_factor * factor, 3.0))
+
+        new_draw_w = int(old_base_w * self._zoom_factor)
+        new_draw_h = int(old_base_h * self._zoom_factor)
+        new_cx, new_cy = new_draw_w // 2, new_draw_h // 2
+        new_escala = new_draw_w * 0.8 / 20
+
+        self._graficar(self._ultimo_tramos, self._ultimo_analisis)
+
+        new_canvas_x = new_cx + world_x * new_escala
+        new_canvas_y = new_cy - world_y * new_escala
+
+        if new_draw_w > visible_w:
+            self.canvas_lim.xview_moveto(max(0.0, min((new_canvas_x - event.x) / new_draw_w, 1.0)))
+        if new_draw_h > visible_h:
+            self.canvas_lim.yview_moveto(max(0.0, min((new_canvas_y - event.y) / new_draw_h, 1.0)))
 
     def _mostrar_texto(self, texto):
         self.txt_analisis.config(state="normal")
@@ -456,10 +542,23 @@ class PanelLimites(tk.Frame):
         self.txt_analisis.config(state="disabled")
         self.txt_analisis.see("1.0")
 
+    def _clear_placeholder(self, entry):
+        if getattr(entry, "_placeholder_text", None) == entry.get():
+            entry.delete(0, "end")
+            entry.config(fg=AZUL_OSCURO)
+
+    def _restore_placeholder(self, entry):
+        if not entry.get().strip():
+            placeholder = getattr(entry, "_placeholder_text", "")
+            entry.delete(0, "end")
+            entry.insert(0, placeholder)
+            entry.config(fg="#444444")
+
     def _limpiar_defensa(self):
         for e in self.entries_defensa.values():
             e.delete(0, "end")
             e.config(bg=BLANCO)
+            self._restore_placeholder(e)
 
     def _verificar_defensa(self):
         if not self.analisis:
@@ -472,11 +571,12 @@ class PanelLimites(tk.Frame):
 
         def chk(entry, esperado_str):
             nonlocal correctos, total
-            val = entry.get().strip().lower().replace(" ", "")
-            if not val:
+            val = entry.get().strip()
+            if not val or getattr(entry, "_placeholder_text", None) == val:
                 return
+            normalized = val.lower().replace(" ", "")
             total += 1
-            if any(e in val for e in esperado_str):
+            if any(e in normalized for e in esperado_str):
                 entry.config(bg="#c8e6c9")
                 correctos += 1
             else:
@@ -492,36 +592,40 @@ class PanelLimites(tk.Frame):
             except (ValueError, TypeError):
                 return [str(v).lower(), str(v), "∞", "-∞", "+∞", "infinito"]
 
-        lim_izq_entry = self.entries_defensa["Límite por izquierda"]
-        lim_der_entry = self.entries_defensa["Límite por derecha"]
-        existe_entry = self.entries_defensa["¿Existe el límite? (sí/no)"]
-        fa_entry = self.entries_defensa["f(a) = "]
-        cont_entry = self.entries_defensa["¿Es continua? (sí/no)"]
-        tipo_entry = self.entries_defensa["Tipo de discontinuidad"]
+        lim_izq_entry = self.entries_defensa["lim_izq"]
+        lim_der_entry = self.entries_defensa["lim_der"]
+        existe_entry = self.entries_defensa["lim_existe"]
+        fa_entry = self.entries_defensa["fa"]
+        cont_entry = self.entries_defensa["continua"]
+        tipo_entry = self.entries_defensa["tipo_disc"]
 
         # Límite izquierda
-        liz = a.get("lim_real_izq", a.get("lim_valor"))
+        liz = getattr(a, "lim_real_izq", None)
+        if liz is None:
+            liz = getattr(a, "lim_valor", None)
         chk(lim_izq_entry, num_str(liz) + ["∞", "-∞", "+∞", "infinito"])
 
         # Límite derecha
-        lde = a.get("lim_real_der", a.get("lim_valor"))
+        lde = getattr(a, "lim_real_der", None)
+        if lde is None:
+            lde = getattr(a, "lim_valor", None)
         chk(lim_der_entry, num_str(lde) + ["∞", "-∞", "+∞", "infinito"])
 
         # Existe
-        existe_ok = ["sí", "si", "s", "yes", "existe"] if a["lim_existe"] else ["no", "n", "noexiste"]
+        existe_ok = ["sí", "si", "s", "yes", "existe"] if getattr(a, "lim_existe", False) else ["no", "n", "noexiste"]
         chk(existe_entry, existe_ok)
 
         # f(a)
-        fa = a.get("f_en_a")
+        fa = getattr(a, "f_en_a", None)
         chk(fa_entry, num_str(fa) + ["nodefinida", "indefinida", "noexiste"])
 
         # Continua
-        cont_ok = ["sí", "si", "s", "yes", "continua"] if a["continua"] else ["no", "n", "nocontinua", "discontinua"]
+        cont_ok = ["sí", "si", "s", "yes", "continua"] if getattr(a, "es_continua", False) else ["no", "n", "nocontinua", "discontinua"]
         chk(cont_entry, cont_ok)
 
         # Tipo
-        tipo = a["tipo_disc"].lower()
-        chk(tipo_entry, [tipo, tipo.split()[0]])
+        tipo = getattr(a, "tipo_discontinuidad", "").lower()
+        chk(tipo_entry, [tipo, tipo.split()[0] if tipo else ""]) 
 
         if total == 0:
             messagebox.showinfo("Aviso", "Complete al menos un campo.")
