@@ -6,14 +6,18 @@ from tkinter import messagebox, scrolledtext, ttk
 from core.exceptions import ConicaInvalidaError, RUTInvalidoError
 from core.graficas import puntos_grafica
 from core.services import analizar_conica
-from ui.componentes import (AZUL_OSCURO, AZUL_MEDIO, AZUL_CLARO,
-                            BLANCO, AMARILLO, GRIS_TEXTO, VERDE,
-                            ROJO, NARANJA)
+from ui.componentes import (
+    BG_PRINCIPAL, BG_CARD, BG_HEADER, BG_INPUT, BG_CANVAS,
+    ACENTO, ACENTO_HOVER, TEXTO, TEXTO_DIM, VERDE, ROJO, NARANJA,
+    BORDE_CARD, ENTRY_BG, ENTRY_FG, FONT_TITLE, FONT_SUBTITLE,
+    FONT_BODY, FONT_CODE, FONT_SMALL,
+    crear_header, crear_barra_rut, crear_card, crear_status_bar
+)
 
 
 class PanelConica(tk.Frame):
     def __init__(self, parent, cambiar_tab_callback=None, logger=None):
-        super().__init__(parent, bg=AZUL_OSCURO)
+        super().__init__(parent, bg=BG_PRINCIPAL)
         self.cambiar_tab = cambiar_tab_callback
         self.logger = logger
         self.digitos = None
@@ -27,135 +31,81 @@ class PanelConica(tk.Frame):
 
     def _construir_ui(self):
         # ── Encabezado principal ────────────────────────────
-        header = tk.Frame(self, bg=AZUL_MEDIO, height=60)
-        header.pack(fill="x", padx=0, pady=0)
-        header.pack_propagate(False)
-
-        tk.Label(header, text="ANÁLISIS DE SECCIONES CÓNICAS",
-                 font=("Helvetica", 14, "bold"),
-                 bg=AZUL_MEDIO, fg=AMARILLO).pack(anchor="w", padx=20, pady=(10, 5))
-        tk.Label(header, text="Ingrese un RUT chileno válido para generar y analizar una cónica",
-                 font=("Helvetica", 9),
-                 bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(anchor="w", padx=20, pady=(0, 10))
+        crear_header(self, "ANÁLISIS DE SECCIONES CÓNICAS", "Ingrese un RUT chileno válido para generar y analizar una cónica")
 
         # ── Sección de entrada (RUT) ────────────────────────
-        frame_rut = tk.Frame(self, bg=AZUL_CLARO, padx=20, pady=12)
-        frame_rut.pack(fill="x", padx=0, pady=0)
-        
-        # Configurar pesos de columnas para responsividad
-        frame_rut.columnconfigure(1, weight=1)
-
-        tk.Label(frame_rut, text="Paso 1: Ingrese RUT chileno",
-                 font=("Helvetica", 10, "bold"),
-                 bg=AZUL_CLARO, fg=AMARILLO).grid(row=0, column=0, sticky="w", columnspan=3, pady=(0, 8))
-
-        tk.Label(frame_rut, text="RUT:",
-                 font=("Helvetica", 10, "bold"),
-                 bg=AZUL_CLARO, fg=BLANCO).grid(row=1, column=0, sticky="w", padx=(0, 10))
-
-        self.entry_rut = tk.Entry(frame_rut, font=("Courier", 12),
-                                   bg=BLANCO, fg=AZUL_OSCURO,
-                                   insertbackground=AZUL_OSCURO,
-                                   relief="flat", bd=3)
-        self.entry_rut.grid(row=1, column=1, padx=10, sticky="ew")
-        self.entry_rut.insert(0, "12.345.678-9")
+        _, self.entry_rut = crear_barra_rut(self, "12.345.678-9", "Analizar", self._procesar)
         self.entry_rut.bind("<Return>", lambda e: self._procesar())
 
-        btn_frame = tk.Frame(frame_rut, bg=AZUL_CLARO)
-        btn_frame.grid(row=1, column=2, padx=5, sticky="w")
-
-        tk.Button(btn_frame, text="Analizar", command=self._procesar,
-                  font=("Helvetica", 10, "bold"),
-                  bg=AMARILLO, fg=AZUL_OSCURO,
-                  relief="flat", padx=15, pady=6,
-                  cursor="hand2", activebackground="#ffed4e").pack(side="left")
-        
-        tk.Label(frame_rut, text="Ejemplos: 8.769.123-K  •  12.456.789-5  •  15.234.567-8",
-                 font=("Helvetica", 7), bg=AZUL_CLARO, fg=GRIS_TEXTO).grid(row=2, column=1, sticky="w", pady=(4, 0))
-
         # ── Área principal dividida ──────────────────────────
-        main_frame = tk.Frame(self, bg=AZUL_OSCURO)
+        main_frame = tk.Frame(self, bg=BG_PRINCIPAL)
         main_frame.pack(fill="both", expand=True, padx=20, pady=15)
         main_frame.columnconfigure(0, weight=1)
         main_frame.columnconfigure(1, weight=2)
         main_frame.rowconfigure(0, weight=1)
 
-        # Columna izquierda: pasos y resultados
-        left = tk.Frame(main_frame, bg=AZUL_OSCURO)
-        left.grid(row=0, column=0, sticky="nsew", padx=(0, 15))
-
-        # Columna derecha: gráfica + elementos (con scroll)
-        right_frame = tk.Frame(main_frame, bg=AZUL_OSCURO)
-        right_frame.grid(row=0, column=1, sticky="nsew")
-        right_frame.rowconfigure(0, weight=1)
-        right_frame.columnconfigure(0, weight=1)
-
-        # Canvas scrollable para el lado derecho
-        right_canvas = tk.Canvas(right_frame, bg=AZUL_OSCURO, highlightthickness=0)
-        right_scrollbar = ttk.Scrollbar(right_frame, orient="vertical", command=right_canvas.yview)
-        right = tk.Frame(right_canvas, bg=AZUL_OSCURO)
-
-        right.bind(
-            "<Configure>",
-            lambda e: right_canvas.configure(scrollregion=right_canvas.bbox("all"))
-        )
-
-        right_canvas_window = right_canvas.create_window((0, 0), window=right, anchor="nw")
-        right_canvas.configure(yscrollcommand=right_scrollbar.set)
-        
-        # Hacer que el frame interno se expanda con el canvas
-        def _on_canvas_configure(event):
-            right_canvas.itemconfig(right_canvas_window, width=event.width)
-        right_canvas.bind("<Configure>", _on_canvas_configure)
-        
-        right_canvas.grid(row=0, column=0, sticky="nsew")
-        right_scrollbar.grid(row=0, column=1, sticky="ns")
-
-        # Permitir scroll con la rueda del ratón
-        def _on_mousewheel(event):
-            right_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-        right_canvas.bind("<MouseWheel>", _on_mousewheel)
-
-        # ── Texto de pasos ───────────────────────────────────
-        step_label_frame = tk.Frame(left, bg=AZUL_MEDIO, padx=10, pady=8)
-        step_label_frame.pack(fill="x", pady=(0, 8))
-        
-        tk.Label(step_label_frame, text="Paso 2: Análisis Matemático",
-                 font=("Helvetica", 10, "bold"),
-                 bg=AZUL_MEDIO, fg=AMARILLO).pack(anchor="w")
-        tk.Label(step_label_frame, text="Validación, coeficientes y forma canónica",
-                 font=("Helvetica", 8),
-                 bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(anchor="w", pady=(2, 0))
+        # ── Columna izquierda: Paso 2 análisis matemático ────
+        left, body_left = crear_card(main_frame, "Paso 2: Análisis Matemático", "Validación, coeficientes y forma canónica")
+        left.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
 
         self.txt_pasos = scrolledtext.ScrolledText(
-            left,
-            font=("Courier", 9),
-            bg="#0d1b2e", fg=GRIS_TEXTO,
-            insertbackground=BLANCO,
-            relief="flat", bd=2,
+            body_left,
+            font=FONT_CODE,
+            bg=BG_CANVAS, fg=TEXTO,
+            insertbackground=TEXTO,
+            relief="flat", bd=0,
+            highlightthickness=1, highlightbackground=BORDE_CARD,
             state="disabled")
         self.txt_pasos.pack(fill="both", expand=True)
 
-        # ── Canvas gráfica ───────────────────────────────────
-        graph_label_frame = tk.Frame(right, bg=AZUL_MEDIO, padx=10, pady=8)
-        graph_label_frame.pack(fill="x", pady=(0, 8))
-        
-        tk.Label(graph_label_frame, text="Paso 3: Visualización Gráfica",
-                 font=("Helvetica", 10, "bold"),
-                 bg=AZUL_MEDIO, fg=AMARILLO).pack(anchor="w")
-        tk.Label(graph_label_frame, text="Representación de la cónica en el plano cartesiano",
-                 font=("Helvetica", 8),
-                 bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(anchor="w", pady=(2, 0))
+        # ── Columna derecha: Paso 3 + Resultado + Defensa ────
+        right_outer = tk.Frame(main_frame, bg=BG_PRINCIPAL)
+        right_outer.grid(row=0, column=1, sticky="nsew")
+        right_outer.rowconfigure(0, weight=1)
+        right_outer.columnconfigure(0, weight=1)
 
-        graph_canvas_frame = tk.Frame(right, bg=AZUL_OSCURO)
-        graph_canvas_frame.pack(fill="both", expand=True, pady=(0, 5))
+        # Canvas scrollable para que los elementos de defensa sean accesibles
+        right_scroll_canvas = tk.Canvas(right_outer, bg=BG_PRINCIPAL, highlightthickness=0)
+        right_scrollbar = ttk.Scrollbar(right_outer, orient="vertical",
+                                        command=right_scroll_canvas.yview)
+        right = tk.Frame(right_scroll_canvas, bg=BG_PRINCIPAL)
+        right.columnconfigure(0, weight=1)
+
+        right.bind(
+            "<Configure>",
+            lambda e: right_scroll_canvas.configure(
+                scrollregion=right_scroll_canvas.bbox("all"))
+        )
+        rc_window = right_scroll_canvas.create_window((0, 0), window=right, anchor="nw")
+        right_scroll_canvas.configure(yscrollcommand=right_scrollbar.set)
+
+        def _on_right_canvas_resize(event):
+            right_scroll_canvas.itemconfig(rc_window, width=event.width)
+        right_scroll_canvas.bind("<Configure>", _on_right_canvas_resize)
+
+        right_scroll_canvas.grid(row=0, column=0, sticky="nsew")
+        right_scrollbar.grid(row=0, column=1, sticky="ns")
+
+        def _on_right_mousewheel(event):
+            right_scroll_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        right_scroll_canvas.bind("<MouseWheel>", _on_right_mousewheel)
+        right.bind("<MouseWheel>", _on_right_mousewheel)
+
+        # ── Paso 3 Visualización Gráfica ────────────────────────────────────
+        card_graph, body_graph = crear_card(right, "Paso 3: Visualización Gráfica", "Representación de la cónica en el plano cartesiano")
+        card_graph.pack(fill="x", pady=(0, 10))
+
+        # ── Canvas gráfica con altura fija ───────────────────
+        graph_canvas_frame = tk.Frame(body_graph, bg=BG_CANVAS, height=310)
+        graph_canvas_frame.pack(fill="x", padx=0, pady=(0, 4))
+        graph_canvas_frame.pack_propagate(False)
         graph_canvas_frame.columnconfigure(0, weight=1)
         graph_canvas_frame.rowconfigure(0, weight=1)
 
         self.canvas = tk.Canvas(graph_canvas_frame,
-                                 bg="#051020", relief="flat", bd=2,
+                                 bg=BG_CANVAS, relief="flat", bd=0,
                                  highlightthickness=1,
-                                 highlightbackground=AZUL_CLARO,
+                                 highlightbackground=BORDE_CARD,
                                  xscrollincrement=10,
                                  yscrollincrement=10)
         vbar = ttk.Scrollbar(graph_canvas_frame, orient="vertical", command=self.canvas.yview)
@@ -173,77 +123,73 @@ class PanelConica(tk.Frame):
         self.canvas.bind("<B1-Motion>", lambda e: self.canvas.scan_dragto(e.x, e.y, gain=1))
 
         # Canvas label - se actualiza con el tipo de cónica
-        self.lbl_canvas_info = tk.Label(right, text="Esperando análisis...",
-                                         font=("Courier", 8),
-                                         bg=AZUL_OSCURO, fg=GRIS_TEXTO)
-        self.lbl_canvas_info.pack()
+        self.lbl_canvas_info = tk.Label(body_graph, text="Esperando análisis...",
+                                         font=FONT_SMALL,
+                                         bg=BG_CARD, fg=TEXTO_DIM)
+        self.lbl_canvas_info.pack(anchor="w")
 
         # ── Tipo de cónica resaltado ─────────────────────────
         self.lbl_tipo = tk.Label(right, text="",
-                                  font=("Helvetica", 13, "bold"),
-                                  bg=AZUL_OSCURO, fg=VERDE)
-        self.lbl_tipo.pack(pady=8)
+                                  font=FONT_TITLE,
+                                  bg=BG_PRINCIPAL, fg=VERDE)
+        self.lbl_tipo.pack(pady=5)
 
-        self.frame_resumen = tk.Frame(right, bg="#2e567f", padx=10, pady=10)
-        self.frame_resumen.pack(fill="x", pady=(0, 8))
-        tk.Label(self.frame_resumen, text="Resultado",
-                 font=("Helvetica", 10, "bold"),
-                 bg="#2e567f", fg=AMARILLO).pack(anchor="w")
-        self.lbl_resumen_ecuacion = tk.Label(self.frame_resumen,
+        card_resumen, body_resumen = crear_card(right, "Resultado")
+        card_resumen.pack(fill="x", pady=(0, 10))
+        
+        self.lbl_resumen_ecuacion = tk.Label(body_resumen,
                                              text="Ecuación: —",
-                                             font=("Courier", 9),
-                                             bg="#2e567f", fg=GRIS_TEXTO,
+                                             font=FONT_CODE,
+                                             bg=BG_CARD, fg=TEXTO,
                                              anchor="w", justify="left",
                                              wraplength=320)
         self.lbl_resumen_ecuacion.pack(fill="x", pady=(2, 0))
-        self.lbl_resumen_tipo = tk.Label(self.frame_resumen,
+        self.lbl_resumen_tipo = tk.Label(body_resumen,
                                          text="Tipo: —",
-                                         font=("Helvetica", 9, "bold"),
-                                         bg="#2e567f", fg=BLANCO,
+                                         font=FONT_SUBTITLE,
+                                         bg=BG_CARD, fg=ACENTO,
                                          anchor="w")
         self.lbl_resumen_tipo.pack(fill="x", pady=(2, 0))
 
         # ── Elementos geométricos (campos para defensa oral) ──
-        tk.Label(right, text="Elementos geométricos (para completar en defensa):",
-                 font=("Helvetica", 9, "bold"),
-                 bg=AZUL_OSCURO, fg=AMARILLO).pack(anchor="w", pady=(8, 3))
-        
-        tk.Label(right, text="Los campos estarán habilitados después de analizar un RUT válido",
-                 font=("Helvetica", 7),
-                 bg=AZUL_OSCURO, fg=GRIS_TEXTO).pack(anchor="w", pady=(0, 3))
-
-        self.frame_elementos = tk.Frame(right, bg=AZUL_MEDIO, padx=8, pady=8)
-        self.frame_elementos.pack(fill="x")
+        card_defensa, body_defensa = crear_card(right, "Elementos Geométricos", "Complete los campos para verificar sus respuestas en la defensa oral")
+        card_defensa.pack(fill="x", pady=(0, 10))
 
         self.entries_elem = {}
         for nombre in ["Centro", "Vértice(s)", "Foco(s)", "Radio / a / b", "Directriz"]:
-            fila = tk.Frame(self.frame_elementos, bg=AZUL_MEDIO)
-            fila.pack(fill="x", pady=1)
+            fila = tk.Frame(body_defensa, bg=BG_CARD)
+            fila.pack(fill="x", pady=3)
             tk.Label(fila, text=f"{nombre}:", width=15, anchor="w",
-                     font=("Helvetica", 8, "bold"),
-                     bg=AZUL_MEDIO, fg=GRIS_TEXTO).pack(side="left")
-            e = tk.Entry(fila, font=("Courier", 9), width=20,
-                          bg=BLANCO, fg=AZUL_OSCURO, relief="flat", bd=2)
-            e.pack(side="left", padx=3)
+                     font=FONT_SUBTITLE,
+                     bg=BG_CARD, fg=TEXTO).pack(side="left")
+            e = tk.Entry(fila, font=FONT_CODE, width=22,
+                          bg=ENTRY_BG, fg=ENTRY_FG, insertbackground=ENTRY_FG,
+                          relief="flat", bd=0, highlightthickness=1, highlightbackground=BORDE_CARD)
+            e.pack(side="left", padx=3, ipady=2)
             self.entries_elem[nombre] = e
 
         # Botón verificar (para defensa)
-        btn_row = tk.Frame(right, bg=AZUL_OSCURO)
-        btn_row.pack(pady=6)
+        btn_row = tk.Frame(body_defensa, bg=BG_CARD)
+        btn_row.pack(fill="x", pady=(10, 0))
         
-        self.btn_verificar = tk.Button(btn_row, text="Verificar respuestas",
+        self.btn_verificar = tk.Button(btn_row, text="Verificar Respuestas",
                   command=self._verificar_elementos,
-                  font=("Helvetica", 9, "bold"),
-                  bg=VERDE, fg="white", relief="flat",
-                  padx=8, pady=3, cursor="hand2")
-        self.btn_verificar.pack(side="left", padx=3)
+                  font=FONT_SUBTITLE,
+                  bg=VERDE, fg=BG_PRINCIPAL, activebackground="#3ee884", activeforeground=BG_PRINCIPAL,
+                  relief="flat", padx=15, pady=6, cursor="hand2")
+        self.btn_verificar.pack(side="left")
+        
+        def on_enter_ver(e):
+            self.btn_verificar.config(bg="#3ee884")
+        def on_leave_ver(e):
+            self.btn_verificar.config(bg=VERDE)
+        self.btn_verificar.bind("<Enter>", on_enter_ver)
+        self.btn_verificar.bind("<Leave>", on_leave_ver)
 
         self._set_defensa_state(False)
 
         # ── Barra de estado ───────────────────────────────────
-        self.lbl_estado = tk.Label(self, text="Ingrese un RUT válido y presione 'Analizar'",
-                                    font=("Helvetica", 9, "bold"), bg=AZUL_OSCURO, fg=GRIS_TEXTO)
-        self.lbl_estado.pack(pady=5)
+        _, self.lbl_estado = crear_status_bar(self, "Ingrese un RUT válido y presione 'Analizar'")
 
     def _procesar(self):
         rut_str = self.entry_rut.get().strip()
@@ -310,7 +256,7 @@ class PanelConica(tk.Frame):
         
         # Actualizar información del canvas
         self.lbl_canvas_info.config(text=f"Cónica generada desde RUT {rut_str}", fg=VERDE)
-        self.lbl_tipo.config(text=f"Tipo: {resultado.tipo_conica}", fg=AMARILLO)
+        self.lbl_tipo.config(text=f"Tipo: {resultado.tipo_conica}", fg=ACENTO)
         self.lbl_resumen_ecuacion.config(text=f"Ecuación: {resultado.ecuacion_general}")
         self.lbl_resumen_tipo.config(text=f"Tipo: {resultado.tipo_conica}")
         self.lbl_estado.config(text=f"RUT válido — {resultado.tipo_conica} detectada — Complete los elementos geométricos", fg=VERDE)
@@ -330,107 +276,179 @@ class PanelConica(tk.Frame):
     def _graficar(self, A, B, C, D, E, tipo, elementos):
         self._ultima_grafica = (A, B, C, D, E, tipo, elementos)
         self.canvas.delete("all")
-        # Canvas visible actual
-        visible_w, visible_h = self.canvas.winfo_width(), self.canvas.winfo_height()
+
+        # Usar el tamaño real del canvas visible
+        visible_w = self.canvas.winfo_width()
+        visible_h = self.canvas.winfo_height()
         if visible_w <= 1 or visible_h <= 1:
-            visible_w, visible_h = 400, 350
+            visible_w, visible_h = 450, 380
 
-        base_w = max(visible_w, 1600)
-        base_h = max(visible_h, 900)
-        draw_w = int(base_w * self._zoom_factor)
-        draw_h = int(base_h * self._zoom_factor)
-        cx, cy = draw_w // 2, draw_h // 2
+        # Aplicar zoom al tamaño del canvas
+        draw_w = int(visible_w * self._zoom_factor)
+        draw_h = int(visible_h * self._zoom_factor)
+        if draw_w < visible_w:
+            draw_w = visible_w
+        if draw_h < visible_h:
+            draw_h = visible_h
 
-        # Escala dinámica basada en el tamaño del canvas virtual
-        ancho_disponible = draw_w * 0.8
-        escala = ancho_disponible / 16  # 16 unidades totales (-8 a +8)
+        # ── Determinar centro de la cónica y radio/semiejes para escala adaptativa ──
+        h, k = 0.0, 0.0
+        tamaño_ref = 5.0  # radio de referencia en unidades matemáticas
 
-        # Fondo más oscuro para contraste
+        if "Centro" in elementos:
+            h, k = elementos["Centro"]
+
+        if tipo == "Circunferencia" and "Radio" in elementos:
+            r = elementos["Radio"]
+            if r and r > 0:
+                tamaño_ref = r * 2.2
+        elif tipo == "Elipse":
+            a_val = elementos.get("a (semi-eje mayor)", None)
+            if a_val and a_val > 0:
+                tamaño_ref = a_val * 2.5
+        elif tipo == "Hipérbola":
+            focos = elementos.get("Focos", None)
+            if focos and len(focos) == 2:
+                f1, f2 = focos
+                dist = ((f1[0]-f2[0])**2 + (f1[1]-f2[1])**2)**0.5
+                tamaño_ref = max(dist * 1.5, 6.0)
+        elif tipo == "Parábola":
+            tamaño_ref = 8.0
+
+        # Escala adaptativa: ajustar para que la cónica ocupe ~70% del canvas
+        margen = 0.85
+        escala_x = (draw_w * margen) / (2 * tamaño_ref)
+        escala_y = (draw_h * margen) / (2 * tamaño_ref)
+        escala = min(escala_x, escala_y)
+        escala = max(escala, 5.0)  # mínimo 5 px/unidad
+
+        # Centro en pantalla que corresponde al centro matemático (h, k)
+        cx = draw_w // 2
+        cy = draw_h // 2
+
+        # ── Fondo ──
         self.canvas.create_rectangle(0, 0, draw_w, draw_h, fill="#051020", outline="")
 
-        # Ejes con mejor visibilidad
-        self.canvas.create_line(10, cy, draw_w - 10, cy, fill="#4a7aaa", width=1.5)
-        self.canvas.create_line(cx, 10, cx, draw_h - 10, fill="#4a7aaa", width=1.5)
+        # ── Calcular rango de unidades visibles ──
+        rango_x = draw_w / (2 * escala)
+        rango_y = draw_h / (2 * escala)
+        paso_grid = max(1, int(tamaño_ref / 4))
+        if tamaño_ref > 20:
+            paso_grid = 5
+        elif tamaño_ref > 10:
+            paso_grid = 2
 
-        # Grid sutil para mejor orientación
-        for i in range(-8, 9):
-            if i == 0:
-                continue
-            px = cx + i * escala
-            py = cy + i * escala
-            # Grid de fondo muy sutil
-            self.canvas.create_line(px, 10, px, draw_h - 10, fill="#1a2f4a", width=0.5)
-            self.canvas.create_line(10, py, draw_w - 10, py, fill="#1a2f4a", width=0.5)
-
-        # Marcas en ejes con mejor contraste
-        for i in range(-8, 9):
-            if i == 0:
-                continue
-            px = cx + i * escala
-            py = cy + i * escala
-            # Marcas más largas
-            self.canvas.create_line(px, cy - 5, px, cy + 5, fill="#6a9aaa", width=1)
-            self.canvas.create_line(cx - 5, py, cx + 5, py, fill="#6a9aaa", width=1)
-            if i % 2 == 0:
-                self.canvas.create_text(px, cy + 14, text=str(i),
-                                         font=("Courier", 7, "bold"), fill="#8aaaaa")
-                self.canvas.create_text(cx - 14, py, text=str(-i),
-                                         font=("Courier", 7, "bold"), fill="#8aaaaa")
-
-        self.canvas.create_text(draw_w - 12, cy - 15, text="x",
-                                 font=("Courier", 10, "bold"), fill="#6a9aaa")
-        self.canvas.create_text(cx + 12, 12, text="y",
-                                 font=("Courier", 10, "bold"), fill="#6a9aaa")
-
-        # Obtener puntos
-        puntos = puntos_grafica(A, B, C, D, E, tipo, n=500)  # Más puntos
-        if not puntos:
-            self.canvas.create_text(cx, cy, text="Sin gráfica disponible",
-                                     font=("Helvetica", 11), fill="#6a8aaa")
-            return
+        inicio_xi = int(-(rango_x + abs(h))) - 2
+        fin_xi = int(rango_x + abs(h)) + 2
+        inicio_yi = int(-(rango_y + abs(k))) - 2
+        fin_yi = int(rango_y + abs(k)) + 2
 
         def mundo_pantalla(x, y):
-            px = cx + x * escala
-            py = cy - y * escala
+            px = cx + (x - h) * escala
+            py = cy - (y - k) * escala
             return px, py
 
-        # Colores mejorados según tipo de cónica
-        colores_tipo = {
-            "Circunferencia": "#00ff88",    # Verde brillante
-            "Elipse": "#00ddff",             # Cian brillante
-            "Hipérbola": "#ff6b9d",          # Rosa/magenta
-            "Parábola": "#ffdd44"            # Amarillo brillante
-        }
-        color_conica = colores_tipo.get(tipo, AMARILLO)
+        # ── Fondo ──
+        self.canvas.create_rectangle(0, 0, draw_w, draw_h, fill=BG_CANVAS, outline="")
 
-        # Dibujar cónica con mayor grosor y suavidad
-        if puntos and isinstance(puntos[0], tuple) and len(puntos[0]) == 2 and puntos[0][0] == "rama":
-            # Hipérbola con dos ramas
+        # ── Grid ──
+        for i in range(inicio_xi, fin_xi + 1, paso_grid):
+            px, _ = mundo_pantalla(h + i, k)
+            if -10 <= px <= draw_w + 10:
+                self.canvas.create_line(px, 0, px, draw_h, fill=BORDE_CARD, width=0.5)
+
+        for j in range(inicio_yi, fin_yi + 1, paso_grid):
+            _, py = mundo_pantalla(h, k + j)
+            if -10 <= py <= draw_h + 10:
+                self.canvas.create_line(0, py, draw_w, py, fill=BORDE_CARD, width=0.5)
+
+        # ── Ejes matemáticos (x=0, y=0) ──
+        ax_px, _ = mundo_pantalla(0, k)
+        _, ay_py = mundo_pantalla(h, 0)
+        # Eje X (y=0)
+        self.canvas.create_line(0, ay_py, draw_w, ay_py, fill=TEXTO_DIM, width=1.5)
+        # Eje Y (x=0)
+        self.canvas.create_line(ax_px, 0, ax_px, draw_h, fill=TEXTO_DIM, width=1.5)
+
+        # ── Marcas y etiquetas en ejes ──
+        for i in range(inicio_xi, fin_xi + 1, paso_grid):
+            if i == 0:
+                continue
+            val_x = h + i
+            px, _ = mundo_pantalla(val_x, k)
+            if -5 <= px <= draw_w + 5:
+                self.canvas.create_line(px, ay_py - 5, px, ay_py + 5, fill=BORDE_CARD, width=1)
+                self.canvas.create_text(px, ay_py + 14, text=f"{val_x:.3g}",
+                                        font=FONT_SMALL, fill=TEXTO_DIM)
+
+        for j in range(inicio_yi, fin_yi + 1, paso_grid):
+            if j == 0:
+                continue
+            val_y = k + j
+            _, py = mundo_pantalla(h, val_y)
+            if -5 <= py <= draw_h + 5:
+                self.canvas.create_line(ax_px - 5, py, ax_px + 5, py, fill=BORDE_CARD, width=1)
+                self.canvas.create_text(ax_px - 16, py, text=f"{val_y:.3g}",
+                                        font=FONT_SMALL, fill=TEXTO_DIM)
+
+        self.canvas.create_text(draw_w - 12, ay_py - 12, text="x",
+                                font=FONT_SMALL, fill=TEXTO_DIM)
+        self.canvas.create_text(ax_px + 12, 10, text="y",
+                                font=FONT_SMALL, fill=TEXTO_DIM)
+
+        # ── Obtener puntos ──
+        puntos = puntos_grafica(A, B, C, D, E, tipo, n=600)
+        if not puntos:
+            self.canvas.create_text(cx, cy, text="Sin gráfica disponible",
+                                    font=FONT_BODY, fill=TEXTO_DIM)
+            self.canvas.configure(scrollregion=(0, 0, draw_w, draw_h))
+            return
+
+        # Colores según tipo
+        colores_tipo = {
+            "Circunferencia": VERDE,
+            "Elipse": "#00ddff",
+            "Hipérbola": "#ff6b9d",
+            "Parábola": ACENTO
+        }
+        color_conica = colores_tipo.get(tipo, ACENTO)
+
+        margen_clip = 30  # px de margen para clipping
+
+        def clip_ok(x1, y1, x2, y2):
+            """Acepta segmento si al menos un extremo está dentro del canvas con margen."""
+            in1 = (-margen_clip <= x1 <= draw_w + margen_clip and
+                   -margen_clip <= y1 <= draw_h + margen_clip)
+            in2 = (-margen_clip <= x2 <= draw_w + margen_clip and
+                   -margen_clip <= y2 <= draw_h + margen_clip)
+            return in1 or in2
+
+        # ── Dibujar cónica ──
+        if puntos and isinstance(puntos[0], tuple) and puntos[0][0] == "rama":
             for _, rama_pts in puntos:
                 pts_pantalla = [mundo_pantalla(x, y) for x, y in rama_pts]
-                # Dibujar con múltiples líneas para efecto de grosor
                 for i in range(len(pts_pantalla) - 1):
                     x1, y1 = pts_pantalla[i]
                     x2, y2 = pts_pantalla[i + 1]
-                    # Validar que los puntos están dentro del canvas
-                    if self._punto_valido(x1, y1, draw_w, draw_h) and self._punto_valido(x2, y2, draw_w, draw_h):
+                    if clip_ok(x1, y1, x2, y2):
                         self.canvas.create_line(x1, y1, x2, y2,
-                                                 fill=color_conica, width=3, capstyle="round", joinstyle="round")
+                                                fill=color_conica, width=2.5,
+                                                capstyle="round", joinstyle="round")
         else:
-            # Circunferencia, Elipse o Parábola
             pts_pantalla = [mundo_pantalla(x, y) for x, y in puntos]
             for i in range(len(pts_pantalla) - 1):
                 x1, y1 = pts_pantalla[i]
                 x2, y2 = pts_pantalla[i + 1]
-                if self._punto_valido(x1, y1, draw_w, draw_h) and self._punto_valido(x2, y2, draw_w, draw_h):
+                if clip_ok(x1, y1, x2, y2):
                     self.canvas.create_line(x1, y1, x2, y2,
-                                             fill=color_conica, width=3, capstyle="round", joinstyle="round")
+                                            fill=color_conica, width=2.5,
+                                            capstyle="round", joinstyle="round")
 
-        # Marcar elementos geométricos con mejor visibilidad
+        # ── Marcar elementos geométricos ──
         self._dibujar_elementos(elementos, mundo_pantalla, draw_w, draw_h)
         self.canvas.configure(scrollregion=(0, 0, draw_w, draw_h))
 
-        # Centrar la vista inicial en la región de dibujo
+        # Si el canvas virtual es más grande que visible, centrar
         if draw_w > visible_w:
             self.canvas.xview_moveto((draw_w - visible_w) / 2 / draw_w)
         if draw_h > visible_h:
@@ -452,39 +470,9 @@ class PanelConica(tk.Frame):
         if not self._ultima_grafica:
             return
 
-        visible_w, visible_h = self.canvas.winfo_width(), self.canvas.winfo_height()
-        if visible_w <= 1 or visible_h <= 1:
-            visible_w, visible_h = 400, 350
-
-        old_base_w = max(visible_w, 1600)
-        old_base_h = max(visible_h, 900)
-        old_draw_w = int(old_base_w * self._zoom_factor)
-        old_draw_h = int(old_base_h * self._zoom_factor)
-        old_cx, old_cy = old_draw_w // 2, old_draw_h // 2
-        old_escala = old_draw_w * 0.8 / 16
-
-        canvas_x = self.canvas.canvasx(event.x)
-        canvas_y = self.canvas.canvasy(event.y)
-        world_x = (canvas_x - old_cx) / old_escala
-        world_y = (old_cy - canvas_y) / old_escala
-
-        factor = 1.1 if event.delta > 0 else 0.9
-        self._zoom_factor = max(0.3, min(self._zoom_factor * factor, 3.0))
-
-        new_draw_w = int(old_base_w * self._zoom_factor)
-        new_draw_h = int(old_base_h * self._zoom_factor)
-        new_cx, new_cy = new_draw_w // 2, new_draw_h // 2
-        new_escala = new_draw_w * 0.8 / 16
-
+        factor = 1.15 if event.delta > 0 else 0.87
+        self._zoom_factor = max(0.3, min(self._zoom_factor * factor, 5.0))
         self._graficar(*self._ultima_grafica)
-
-        new_canvas_x = new_cx + world_x * new_escala
-        new_canvas_y = new_cy - world_y * new_escala
-
-        if new_draw_w > visible_w:
-            self.canvas.xview_moveto(max(0.0, min((new_canvas_x - event.x) / new_draw_w, 1.0)))
-        if new_draw_h > visible_h:
-            self.canvas.yview_moveto(max(0.0, min((new_canvas_y - event.y) / new_draw_h, 1.0)))
 
     def _punto_valido(self, x, y, w, h):
         """Verifica si un punto está dentro del canvas con margen."""
@@ -497,13 +485,11 @@ class PanelConica(tk.Frame):
         if "Centro" in elementos:
             hx, ky = elementos["Centro"]
             px, py = mundo_pantalla(hx, ky)
-            # Círculo relleno más grande
             self.canvas.create_oval(px - 6, py - 6, px + 6, py + 6,
-                                     fill=ROJO, outline=BLANCO, width=2)
-            # Etiqueta con fondo
+                                     fill=ROJO, outline=ENTRY_FG, width=2)
             self.canvas.create_text(px + 15, py - 12,
                                      text=f"Centro",
-                                     font=("Courier", 8, "bold"), fill=ROJO,
+                                     font=FONT_SMALL, fill=ROJO,
                                      anchor="w")
 
         # Foco único (para parábola)
@@ -511,10 +497,10 @@ class PanelConica(tk.Frame):
             fx, fy = elementos["Foco"]
             px, py = mundo_pantalla(fx, fy)
             self.canvas.create_oval(px - 5, py - 5, px + 5, py + 5,
-                                     fill=NARANJA, outline=BLANCO, width=2)
+                                     fill=NARANJA, outline=ENTRY_FG, width=2)
             self.canvas.create_text(px + 12, py - 8,
                                      text="F",
-                                     font=("Courier", 8, "bold"), fill=NARANJA,
+                                     font=FONT_SMALL, fill=NARANJA,
                                      anchor="w")
 
         # Focos múltiples (para elipse e hipérbola)
@@ -523,23 +509,22 @@ class PanelConica(tk.Frame):
                 fx, fy = foco
                 px, py = mundo_pantalla(fx, fy)
                 self.canvas.create_oval(px - 5, py - 5, px + 5, py + 5,
-                                         fill=NARANJA, outline=BLANCO, width=2)
+                                         fill=NARANJA, outline=ENTRY_FG, width=2)
                 label = f"F{i+1}"
                 self.canvas.create_text(px + 12, py - 8,
                                          text=label,
-                                         font=("Courier", 8, "bold"), fill=NARANJA,
+                                         font=FONT_SMALL, fill=NARANJA,
                                          anchor="w")
 
         # Vértices
         if "Vértice" in elementos:
             vx, vy = elementos["Vértice"]
             px, py = mundo_pantalla(vx, vy)
-            # Cuadrado más grande
             self.canvas.create_rectangle(px - 6, py - 6, px + 6, py + 6,
-                                          fill=VERDE, outline=BLANCO, width=2)
+                                          fill=VERDE, outline=ENTRY_FG, width=2)
             self.canvas.create_text(px + 14, py - 12,
                                      text="V",
-                                     font=("Courier", 8, "bold"), fill=VERDE,
+                                     font=FONT_SMALL, fill=VERDE,
                                      anchor="w")
 
         if "Vértices" in elementos:
@@ -547,11 +532,11 @@ class PanelConica(tk.Frame):
                 vx, vy = vertice
                 px, py = mundo_pantalla(vx, vy)
                 self.canvas.create_rectangle(px - 6, py - 6, px + 6, py + 6,
-                                              fill=VERDE, outline=BLANCO, width=2)
+                                              fill=VERDE, outline=ENTRY_FG, width=2)
                 label = f"V{i+1}"
                 self.canvas.create_text(px + 14, py - 12,
                                          text=label,
-                                         font=("Courier", 8, "bold"), fill=VERDE,
+                                         font=FONT_SMALL, fill=VERDE,
                                          anchor="w")
 
     def _mostrar_texto(self, texto):
@@ -569,25 +554,26 @@ class PanelConica(tk.Frame):
         self.canvas.delete("all")
         # Canvas con fondo oscuro
         self.canvas.create_rectangle(0, 0, self.canvas.winfo_width(), 
-                                      self.canvas.winfo_height(), fill="#051020")
+                                      self.canvas.winfo_height(), fill=BG_CANVAS, outline="")
         self.canvas.create_text(self.canvas.winfo_width() // 2, 
                                  self.canvas.winfo_height() // 2,
                                  text="Aquí aparecerá la cónica",
-                                 font=("Helvetica", 11), fill="#7a92c6")
+                                 font=FONT_BODY, fill=TEXTO_DIM)
         self._set_defensa_state(True)
 
     def _set_defensa_state(self, enabled):
         state = "normal" if enabled else "disabled"
-        bg = BLANCO if enabled else "#d0d7eb"
+        bg = ENTRY_BG if enabled else BG_PRINCIPAL
+        fg = ENTRY_FG if enabled else TEXTO_DIM
         for entry in self.entries_elem.values():
-            entry.config(state=state, bg=bg)
+            entry.config(state=state, bg=bg, fg=fg)
         if not enabled:
             for entry in self.entries_elem.values():
                 entry.delete(0, "end")
 
     def _limpiar(self):
         self.entry_rut.delete(0, "end")
-        self.lbl_estado.config(text="Ingrese un RUT y presione Analizar", fg=GRIS_TEXTO)
+        self.lbl_estado.config(text="Ingrese un RUT y presione Analizar", fg=TEXTO_DIM)
         self._limpiar_resultado()
         if self.logger:
             self.logger.info("PanelCónica: Limpiar interfaz")
@@ -639,7 +625,7 @@ class PanelConica(tk.Frame):
             if not val:
                 continue
             total += 1
-            entry.config(bg="#fff9c4")  # amarillo neutro por defecto
+            entry.config(bg="#fff9c4", fg=BG_PRINCIPAL)  # amarillo neutro por defecto
 
             esperado_key = None
             if "Centro" in nombre and "Centro" in self.elementos:
@@ -669,10 +655,10 @@ class PanelConica(tk.Frame):
                     esperado = self.elementos[esperado_key]
 
                 if matches_expected(val, esperado):
-                    entry.config(bg="#c8e6c9")  # verde
+                    entry.config(bg="#c8e6c9", fg=BG_PRINCIPAL)  # verde
                     correctos += 1
                 else:
-                    entry.config(bg="#ffcdd2")  # rojo
+                    entry.config(bg="#ffcdd2", fg=BG_PRINCIPAL)  # rojo
 
         if total == 0:
             messagebox.showinfo("Aviso", "Complete al menos un campo para verificar.")
