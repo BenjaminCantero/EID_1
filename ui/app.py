@@ -1,3 +1,4 @@
+from ui.componentes import FONT_SMALL
 import tkinter as tk
 from tkinter import ttk
 
