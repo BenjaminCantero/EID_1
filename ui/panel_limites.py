@@ -15,124 +15,116 @@ from ui.componentes import (
 )
 
 
+def _hover(btn, color_on, color_off):
+    """Vincula efecto hover a un botón de forma compacta."""
+    btn.bind("<Enter>", lambda e: btn.config(bg=color_on))
+    btn.bind("<Leave>", lambda e: btn.config(bg=color_off))
+
+
 class PanelLimites(tk.Frame):
     def __init__(self, parent, logger=None):
         super().__init__(parent, bg=BG_PRINCIPAL)
         self.logger = logger
-        self.tramos = None
-        self.analisis = None
+        self.tramos = self.analisis = None
         self.a = 0
-        self._ultimo_tramos = None
-        self._ultimo_analisis = None
+        self._ultimo_tramos = self._ultimo_analisis = None
         self._zoom_factor = 1.0
         self._construir_ui()
 
-    def _construir_ui(self):
-        # ── Encabezado principal ────────────────────────────
-        crear_header(self, "ANÁLISIS DE FUNCIONES Y LÍMITES", "Ingrese un RUT para analizar funciones por tramos y comportamiento de límites")
+    # ─────────────────────────── UI ────────────────────────────────
 
-        # ── Sección de entrada (RUT) ────────────────────────
+    def _construir_ui(self):
+        crear_header(self, "ANÁLISIS DE FUNCIONES Y LÍMITES",
+                     "Ingrese un RUT para analizar funciones por tramos y comportamiento de límites")
+
         _, self.entry_rut = crear_barra_rut(self, "12.345.678-9", "Generar función", self._procesar)
         self.entry_rut.bind("<Return>", lambda e: self._procesar())
 
-        # ── Cuerpo principal ──────────────────────────────────
         body = tk.Frame(self, bg=BG_PRINCIPAL)
         body.pack(fill="both", expand=True, padx=20, pady=5)
         body.columnconfigure(0, weight=1)
         body.columnconfigure(1, weight=2)
         body.rowconfigure(0, weight=1)
 
-        # ── Columna izquierda: análisis + tabla ───────────────
-        left, body_left = crear_card(body, "Paso 2: Análisis Matemático", "Validación, tipo de función y cálculo de límites laterales")
+        self._construir_columna_izquierda(body)
+        self._construir_columna_derecha(body)
+
+        _, self.lbl_estado = crear_status_bar(self, "Ingrese un RUT válido y presione 'Generar función'")
+
+    def _construir_columna_izquierda(self, body):
+        left, body_left = crear_card(body, "Paso 2: Análisis Matemático",
+                                     "Validación, tipo de función y cálculo de límites laterales")
         left.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
-        
         body_left.columnconfigure(0, weight=1)
         body_left.rowconfigure(0, weight=3)
         body_left.rowconfigure(2, weight=1)
 
         self.txt_analisis = scrolledtext.ScrolledText(
-            body_left,
-            font=FONT_CODE,
-            bg=BG_CANVAS, fg=TEXTO,
-            insertbackground=TEXTO,
-            relief="flat", bd=0,
-            highlightthickness=1, highlightbackground=BORDE_CARD,
-            state="disabled")
+            body_left, font=FONT_CODE, bg=BG_CANVAS, fg=TEXTO,
+            insertbackground=TEXTO, relief="flat", bd=0,
+            highlightthickness=1, highlightbackground=BORDE_CARD, state="disabled")
         self.txt_analisis.grid(row=0, column=0, sticky="nsew", pady=(0, 10))
 
-        # Tabla de valores
-        lbl_tbl = tk.Label(body_left, text="Tabla de Valores (cercanos al punto crítico)", font=FONT_SUBTITLE, fg=ACENTO, bg=BG_CARD, anchor="w")
-        lbl_tbl.grid(row=1, column=0, sticky="ew", pady=(0, 4))
+        tk.Label(body_left, text="Tabla de Valores (cercanos al punto crítico)",
+                 font=FONT_SUBTITLE, fg=ACENTO, bg=BG_CARD, anchor="w"
+                 ).grid(row=1, column=0, sticky="ew", pady=(0, 4))
 
         frame_tabla = tk.Frame(body_left, bg=BG_CARD)
         frame_tabla.grid(row=2, column=0, sticky="nsew")
         frame_tabla.rowconfigure(0, weight=1)
         frame_tabla.columnconfigure(0, weight=1)
 
-        self.tabla_tree = ttk.Treeview(frame_tabla,
-                                        columns=("x", "f(x)", "lado"),
+        self.tabla_tree = ttk.Treeview(frame_tabla, columns=("x", "f(x)", "lado"),
                                         show="headings", height=6)
-        self.tabla_tree.heading("x", text="x")
-        self.tabla_tree.heading("f(x)", text="f(x)")
-        self.tabla_tree.heading("lado", text="Lado")
-        self.tabla_tree.column("x", width=100, anchor="center")
-        self.tabla_tree.column("f(x)", width=120, anchor="center")
-        self.tabla_tree.column("lado", width=70, anchor="center")
+        for col, txt, w in [("x", "x", 100), ("f(x)", "f(x)", 120), ("lado", "Lado", 70)]:
+            self.tabla_tree.heading(col, text=txt)
+            self.tabla_tree.column(col, width=w, anchor="center")
         self.tabla_tree.grid(row=0, column=0, sticky="nsew")
 
-        # ── Columna derecha: Paso 3 + Defensa ────────────────
+    def _construir_columna_derecha(self, body):
         right_outer = tk.Frame(body, bg=BG_PRINCIPAL)
         right_outer.grid(row=0, column=1, sticky="nsew")
         right_outer.rowconfigure(0, weight=1)
         right_outer.columnconfigure(0, weight=1)
 
-        right_scroll_canvas = tk.Canvas(right_outer, bg=BG_PRINCIPAL, highlightthickness=0)
-        right_scrollbar = ttk.Scrollbar(right_outer, orient="vertical",
-                                        command=right_scroll_canvas.yview)
-        right = tk.Frame(right_scroll_canvas, bg=BG_PRINCIPAL)
+        rsc = tk.Canvas(right_outer, bg=BG_PRINCIPAL, highlightthickness=0)
+        rsb = ttk.Scrollbar(right_outer, orient="vertical", command=rsc.yview)
+        right = tk.Frame(rsc, bg=BG_PRINCIPAL)
         right.columnconfigure(0, weight=1)
 
-        right.bind(
-            "<Configure>",
-            lambda e: right_scroll_canvas.configure(
-                scrollregion=right_scroll_canvas.bbox("all"))
-        )
-        rc_window = right_scroll_canvas.create_window((0, 0), window=right, anchor="nw")
-        right_scroll_canvas.configure(yscrollcommand=right_scrollbar.set)
+        rc_win = rsc.create_window((0, 0), window=right, anchor="nw")
+        right.bind("<Configure>", lambda e: rsc.configure(scrollregion=rsc.bbox("all")))
+        rsc.configure(yscrollcommand=rsb.set)
+        rsc.bind("<Configure>", lambda e: rsc.itemconfig(rc_win, width=e.width))
 
-        def _on_right_canvas_resize(event):
-            right_scroll_canvas.itemconfig(rc_window, width=event.width)
-        right_scroll_canvas.bind("<Configure>", _on_right_canvas_resize)
+        rsc.grid(row=0, column=0, sticky="nsew")
+        rsb.grid(row=0, column=1, sticky="ns")
 
-        right_scroll_canvas.grid(row=0, column=0, sticky="nsew")
-        right_scrollbar.grid(row=0, column=1, sticky="ns")
+        mw = lambda e: rsc.yview_scroll(int(-1 * (e.delta / 120)), "units")
+        rsc.bind("<MouseWheel>", mw)
+        right.bind("<MouseWheel>", mw)
 
-        def _on_right_mousewheel(event):
-            right_scroll_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
-        right_scroll_canvas.bind("<MouseWheel>", _on_right_mousewheel)
-        right.bind("<MouseWheel>", _on_right_mousewheel)
+        self._construir_grafica(right)
+        self._construir_funcion_generada(right)
+        self._construir_defensa(right)
 
-        # ── Paso 3 Visualización Gráfica ────────────────────────────────────
-        card_graph, body_graph = crear_card(right, "Paso 3: Visualización Gráfica", "Comportamiento de la función y su discontinuidad")
+    def _construir_grafica(self, parent):
+        card_graph, body_graph = crear_card(parent, "Paso 3: Visualización Gráfica",
+                                            "Comportamiento de la función y su discontinuidad")
         card_graph.pack(fill="x", pady=(0, 10))
 
-        # ── Canvas gráfica con altura fija ───────────────────
-        graph_canvas_frame = tk.Frame(body_graph, bg=BG_CANVAS, height=310)
-        graph_canvas_frame.pack(fill="x", padx=0, pady=(0, 4))
-        graph_canvas_frame.pack_propagate(False)
-        graph_canvas_frame.columnconfigure(0, weight=1)
-        graph_canvas_frame.rowconfigure(0, weight=1)
+        gcf = tk.Frame(body_graph, bg=BG_CANVAS, height=310)
+        gcf.pack(fill="x", padx=0, pady=(0, 4))
+        gcf.pack_propagate(False)
+        gcf.columnconfigure(0, weight=1)
+        gcf.rowconfigure(0, weight=1)
 
-        self.canvas_lim = tk.Canvas(graph_canvas_frame,
-                                     bg=BG_CANVAS, relief="flat", bd=0,
-                                     highlightthickness=1,
-                                     highlightbackground=BORDE_CARD,
-                                     xscrollincrement=10,
-                                     yscrollincrement=10)
-        vbar = ttk.Scrollbar(graph_canvas_frame, orient="vertical", command=self.canvas_lim.yview)
-        hbar = ttk.Scrollbar(graph_canvas_frame, orient="horizontal", command=self.canvas_lim.xview)
+        self.canvas_lim = tk.Canvas(gcf, bg=BG_CANVAS, relief="flat", bd=0,
+                                     highlightthickness=1, highlightbackground=BORDE_CARD,
+                                     xscrollincrement=10, yscrollincrement=10)
+        vbar = ttk.Scrollbar(gcf, orient="vertical", command=self.canvas_lim.yview)
+        hbar = ttk.Scrollbar(gcf, orient="horizontal", command=self.canvas_lim.xview)
         self.canvas_lim.configure(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
-
         self.canvas_lim.grid(row=0, column=0, sticky="nsew")
         vbar.grid(row=0, column=1, sticky="ns")
         hbar.grid(row=1, column=0, sticky="ew")
@@ -143,86 +135,67 @@ class PanelLimites(tk.Frame):
         self.canvas_lim.bind("<ButtonPress-1>", lambda e: self.canvas_lim.scan_mark(e.x, e.y))
         self.canvas_lim.bind("<B1-Motion>", lambda e: self.canvas_lim.scan_dragto(e.x, e.y, gain=1))
 
-        # Canvas info label
         self.lbl_canvas_lim_info = tk.Label(body_graph, text="Esperando análisis...",
-                                             font=FONT_SMALL,
-                                             bg=BG_CARD, fg=TEXTO_DIM)
+                                             font=FONT_SMALL, bg=BG_CARD, fg=TEXTO_DIM)
         self.lbl_canvas_lim_info.pack(anchor="w")
 
-        # ── Función generada ──────────────────────────────────
-        card_resumen, body_resumen = crear_card(right, "Función Generada")
+    def _construir_funcion_generada(self, parent):
+        card_resumen, body_resumen = crear_card(parent, "Función Generada")
         card_resumen.pack(fill="x", pady=(0, 10))
-
         self.lbl_funcion = tk.Label(body_resumen, text="Ninguna función generada aún.",
-                                     font=FONT_CODE,
-                                     bg=BG_CARD, fg=TEXTO,
+                                     font=FONT_CODE, bg=BG_CARD, fg=TEXTO,
                                      wraplength=320, justify="left")
         self.lbl_funcion.pack(fill="x", pady=(2, 0))
 
-        # ── Campos para defensa oral ──────────────────────────
-        card_defensa, body_defensa = crear_card(right, "Defensa Oral", "Complete los campos para demostrar su comprensión de límites")
+    def _construir_defensa(self, parent):
+        card_defensa, body_defensa = crear_card(parent, "Defensa Oral",
+                                                "Complete los campos para demostrar su comprensión de límites")
         card_defensa.pack(fill="x", pady=(0, 10))
 
         campos = [
-            ("lim_izq", "Límite por izquierda:", "lim x→a⁻ f(x) = "),
-            ("lim_der", "Límite por derecha:", "lim x→a⁺ f(x) = "),
-            ("lim_existe", "¿Existe el límite?:", "sí / no"),
-            ("fa", "f(a) =", "valor o 'no def.'"),
-            ("continua", "¿Es continua?:", "sí / no"),
-            ("tipo_disc", "Tipo de discontinuidad:", "removible / salto / infinita"),
-            ("justificacion", "Justificación matemática:", "descripción breve"),
+            ("lim_izq",      "Límite por izquierda:", "lim x→a⁻ f(x) = "),
+            ("lim_der",      "Límite por derecha:",   "lim x→a⁺ f(x) = "),
+            ("lim_existe",   "¿Existe el límite?:",   "sí / no"),
+            ("fa",           "f(a) =",                "valor o 'no def.'"),
+            ("continua",     "¿Es continua?:",        "sí / no"),
+            ("tipo_disc",    "Tipo de discontinuidad:", "removible / salto / infinita"),
+            ("justificacion","Justificación matemática:", "descripción breve"),
         ]
         self.entries_defensa = {}
-        for key, etiqueta_full, placeholder in campos:
+        for key, etiqueta, placeholder in campos:
             fila = tk.Frame(body_defensa, bg=BG_CARD)
             fila.pack(fill="x", pady=3)
-            tk.Label(fila, text=etiqueta_full, width=22, anchor="w",
-                     font=FONT_SUBTITLE,
-                     bg=BG_CARD, fg=TEXTO).pack(side="left")
-            e = tk.Entry(fila, font=FONT_CODE, width=22,
-                          bg=ENTRY_BG, fg=TEXTO_DIM, insertbackground=ENTRY_FG,
-                          relief="flat", bd=0, highlightthickness=1, highlightbackground=BORDE_CARD)
+            tk.Label(fila, text=etiqueta, width=22, anchor="w",
+                     font=FONT_SUBTITLE, bg=BG_CARD, fg=TEXTO).pack(side="left")
+            e = tk.Entry(fila, font=FONT_CODE, width=22, bg=ENTRY_BG, fg=TEXTO_DIM,
+                          insertbackground=ENTRY_FG, relief="flat", bd=0,
+                          highlightthickness=1, highlightbackground=BORDE_CARD)
             e.pack(side="left", padx=2, ipady=2)
             e.insert(0, placeholder)
             e._placeholder_text = placeholder
-            e.bind("<FocusIn>", lambda event, entry=e: self._clear_placeholder(entry))
-            e.bind("<FocusOut>", lambda event, entry=e: self._restore_placeholder(entry))
+            e.bind("<FocusIn>",  lambda ev, en=e: self._clear_placeholder(en))
+            e.bind("<FocusOut>", lambda ev, en=e: self._restore_placeholder(en))
             self.entries_defensa[key] = e
 
-        # Botones defensa
         btn_row = tk.Frame(body_defensa, bg=BG_CARD)
         btn_row.pack(fill="x", pady=(10, 0))
 
-        btn_verificar = tk.Button(btn_row, text="Verificar",
-                  command=self._verificar_defensa,
-                  font=FONT_SUBTITLE,
-                  bg=VERDE, fg=BG_PRINCIPAL, activebackground="#3ee884", activeforeground=BG_PRINCIPAL,
-                  relief="flat", padx=15, pady=6, cursor="hand2")
-        btn_verificar.pack(side="left", padx=(0, 10))
-        
-        def on_enter_ver(e):
-            btn_verificar.config(bg="#3ee884")
-        def on_leave_ver(e):
-            btn_verificar.config(bg=VERDE)
-        btn_verificar.bind("<Enter>", on_enter_ver)
-        btn_verificar.bind("<Leave>", on_leave_ver)
+        btn_ver = tk.Button(btn_row, text="Verificar", command=self._verificar_defensa,
+                            font=FONT_SUBTITLE, bg=VERDE, fg=BG_PRINCIPAL,
+                            activebackground="#3ee884", activeforeground=BG_PRINCIPAL,
+                            relief="flat", padx=15, pady=6, cursor="hand2")
+        btn_ver.pack(side="left", padx=(0, 10))
+        _hover(btn_ver, "#3ee884", VERDE)
 
-        btn_limpiar = tk.Button(btn_row, text="Limpiar Campos",
-                  command=self._limpiar_defensa,
-                  font=FONT_SUBTITLE,
-                  bg=BG_PRINCIPAL, fg=TEXTO, activebackground=BORDE_CARD, activeforeground=TEXTO,
-                  relief="flat", padx=15, pady=6, cursor="hand2", highlightthickness=1, highlightbackground=BORDE_CARD)
-        btn_limpiar.pack(side="left")
-        
-        def on_enter_lim(e):
-            btn_limpiar.config(bg=BORDE_CARD)
-        def on_leave_lim(e):
-            btn_limpiar.config(bg=BG_PRINCIPAL)
-        btn_limpiar.bind("<Enter>", on_enter_lim)
-        btn_limpiar.bind("<Leave>", on_leave_lim)
+        btn_lim = tk.Button(btn_row, text="Limpiar Campos", command=self._limpiar_defensa,
+                            font=FONT_SUBTITLE, bg=BG_PRINCIPAL, fg=TEXTO,
+                            activebackground=BORDE_CARD, activeforeground=TEXTO,
+                            relief="flat", padx=15, pady=6, cursor="hand2",
+                            highlightthickness=1, highlightbackground=BORDE_CARD)
+        btn_lim.pack(side="left")
+        _hover(btn_lim, BORDE_CARD, BG_PRINCIPAL)
 
-        # Estado
-        _, self.lbl_estado = crear_status_bar(self, "Ingrese un RUT válido y presione 'Generar función'")
+    # ─────────────────────────── LÓGICA ────────────────────────────
 
     def _procesar(self):
         rut_str = self.entry_rut.get().strip()
@@ -248,153 +221,124 @@ class PanelLimites(tk.Frame):
                 self.logger.error(f"PanelLímites: Error de límites para RUT '{rut_str}' — {e}")
             return
 
-        self.tramos = resultado.tramos_info
+        self.tramos  = resultado.tramos_info
         self.analisis = resultado
 
-        texto = "╔════════════════════════════════════════════════════════╗\n"
-        texto += "║               FUNCIÓN GENERADA POR TRAMOS            ║\n"
-        texto += "╚════════════════════════════════════════════════════════╝\n\n"
-        texto += f"{resultado.descripcion_funcion}\n\n"
-        texto += f"➤ Punto de análisis: a = {resultado.a}\n\n"
-        texto += "Criterio de selección del caso:\n"
-        texto += f"  {resultado.razon_caso}\n\n"
-        
-        texto += "╔════════════════════════════════════════════════════════╗\n"
-        texto += "║              CÁLCULO DE LÍMITES LATERALES             ║\n"
-        texto += "╚════════════════════════════════════════════════════════╝\n\n"
-        texto += "\n".join(resultado.pasos_limites) + "\n"
-
+        texto = (
+            "╔════════════════════════════════════════════════════════╗\n"
+            "║               FUNCIÓN GENERADA POR TRAMOS            ║\n"
+            "╚════════════════════════════════════════════════════════╝\n\n"
+            f"{resultado.descripcion_funcion}\n\n"
+            f"➤ Punto de análisis: a = {resultado.a}\n\n"
+            f"Criterio de selección del caso:\n  {resultado.razon_caso}\n\n"
+            "╔════════════════════════════════════════════════════════╗\n"
+            "║              CÁLCULO DE LÍMITES LATERALES             ║\n"
+            "╚════════════════════════════════════════════════════════╝\n\n"
+            + "\n".join(resultado.pasos_limites) + "\n"
+        )
         self._mostrar_texto(texto)
-        
-        # Actualizar información del canvas
-        self.lbl_canvas_lim_info.config(text=f"✓ {resultado.tipo_discontinuidad} (Caso: {resultado.caso_tipo})", fg=ACENTO)
-        self.lbl_funcion.config(text=f"f(x) con a={resultado.a}  │  Tipo: {resultado.caso_tipo}  │  Discontinuidad: {resultado.tipo_discontinuidad}")
-        self.lbl_estado.config(text=f"✓ Función generada — {resultado.tipo_discontinuidad} — Complete los campos de defensa", fg=VERDE)
+
+        self.lbl_canvas_lim_info.config(
+            text=f"✓ {resultado.tipo_discontinuidad} (Caso: {resultado.caso_tipo})", fg=ACENTO)
+        self.lbl_funcion.config(
+            text=f"f(x) con a={resultado.a}  │  Tipo: {resultado.caso_tipo}  │  "
+                 f"Discontinuidad: {resultado.tipo_discontinuidad}")
+        self.lbl_estado.config(
+            text=f"✓ Función generada — {resultado.tipo_discontinuidad} — Complete los campos de defensa",
+            fg=VERDE)
         if self.logger:
-            self.logger.info(f"PanelLímites: Función generada para RUT '{rut_str}' — caso '{resultado.caso_tipo}', tipo '{resultado.tipo_discontinuidad}'")
+            self.logger.info(
+                f"PanelLímites: Función generada para RUT '{rut_str}' — "
+                f"caso '{resultado.caso_tipo}', tipo '{resultado.tipo_discontinuidad}'")
 
         for row in self.tabla_tree.get_children():
             self.tabla_tree.delete(row)
         for fila in resultado.tabla_valores:
             x_str = f"{fila['x']:.4f}" if fila['x'] is not None else "—"
             y_str = "No def." if fila['f_x'] is None else f"{fila['f_x']:.4f}"
-            lado = fila['lado']
-            tag = "izq" if lado == "izq" else "der"
+            lado  = fila['lado']
             self.tabla_tree.insert("", "end",
-                                    values=(x_str, y_str, "← izq" if lado == "izq" else "der →"),
-                                    tags=(tag,))
+                                   values=(x_str, y_str, "← izq" if lado == "izq" else "der →"),
+                                   tags=(lado,))
         self.tabla_tree.tag_configure("izq", background="#1a3a6a", foreground="#90caf9")
         self.tabla_tree.tag_configure("der", background="#1a4a2a", foreground="#a5d6a7")
 
         self._graficar(self.tramos, resultado)
         self._limpiar_defensa()
 
+    # ─────────────────────────── GRÁFICA ───────────────────────────
+
     def _graficar(self, tramos, analisis):
-        self._ultimo_tramos = tramos
-        self._ultimo_analisis = analisis
+        self._ultimo_tramos, self._ultimo_analisis = tramos, analisis
         self.canvas_lim.delete("all")
 
-        # Usar el tamaño real del canvas visible
-        visible_w = self.canvas_lim.winfo_width()
-        visible_h = self.canvas_lim.winfo_height()
-        if visible_w <= 1 or visible_h <= 1:
-            visible_w, visible_h = 450, 290
+        visible_w = max(450, self.canvas_lim.winfo_width())
+        visible_h = max(290, self.canvas_lim.winfo_height())
+        draw_w = max(visible_w, int(visible_w * self._zoom_factor))
+        draw_h = max(visible_h, int(visible_h * self._zoom_factor))
 
-        # Aplicar zoom
-        draw_w = int(visible_w * self._zoom_factor)
-        draw_h = int(visible_h * self._zoom_factor)
-        if draw_w < visible_w:
-            draw_w = visible_w
-        if draw_h < visible_h:
-            draw_h = visible_h
-
-        caso = tramos["tipo"]
-        a = tramos["a"]
+        caso    = tramos["tipo"]
+        a       = tramos["a"]
         rango_x = 8.0
-
-        # Obtener segmentos y pantalla_fn desde graficas.py
-        # pantalla_fn usa: cx + (x-a)*escala_x, cy - y*escala_y
-        # donde escala_x = draw_w/(2*rango_x), escala_y = draw_h/(2*rango_x)
         segmentos, pantalla_fn = puntos_grafica_limite(tramos, draw_w, draw_h, rango_x=rango_x)
 
-        # Usar las mismas escalas que puntos_grafica_limite
-        cx = draw_w / 2
-        cy = draw_h / 2
+        cx, cy   = draw_w / 2, draw_h / 2
         escala_x = draw_w / (2 * rango_x)
         escala_y = draw_h / (2 * rango_x)
+        mp = lambda x, y: (cx + (x - a) * escala_x, cy - y * escala_y)
 
-        def mp(x, y):
-            """Mismo sistema de coordenadas que puntos_grafica_limite."""
-            return cx + (x - a) * escala_x, cy - y * escala_y
-
-        # ── Fondo ──
+        # Fondo
         self.canvas_lim.create_rectangle(0, 0, draw_w, draw_h, fill=BG_CANVAS, outline="")
 
-        # ── Grid ──
-        for i in range(-int(rango_x) - 1, int(rango_x) + 2):
+        eje_x_px, _ = mp(0, 0)
+
+        # Cuadrícula + ticks + etiquetas (bucle unificado)
+        rng = range(-int(rango_x) - 1, int(rango_x) + 2)
+        for i in rng:
+            # ── Eje vertical (grid + tick + label X) ──
             px, _ = mp(a + i, 0)
             if -5 <= px <= draw_w + 5:
                 self.canvas_lim.create_line(px, 0, px, draw_h, fill=BORDE_CARD, width=0.5)
-        for j in range(-int(rango_x) - 1, int(rango_x) + 2):
-            _, py = mp(a, j)
+                self.canvas_lim.create_line(px, cy - 4, px, cy + 4, fill=BORDE_CARD, width=1)
+                self.canvas_lim.create_text(px, cy + 13, text=f"{a + i:.3g}",
+                                            font=FONT_SMALL, fill=TEXTO_DIM)
+            # ── Eje horizontal (grid + tick + label Y) ──
+            _, py = mp(a, i)
             if -5 <= py <= draw_h + 5:
                 self.canvas_lim.create_line(0, py, draw_w, py, fill=BORDE_CARD, width=0.5)
+                if i != 0:
+                    self.canvas_lim.create_line(eje_x_px - 4, py, eje_x_px + 4, py,
+                                                fill=BORDE_CARD, width=1)
+                    self.canvas_lim.create_text(eje_x_px - 18, py, text=f"{i:.3g}",
+                                                font=FONT_SMALL, fill=TEXTO_DIM)
 
-        # ── Ejes matemáticos ──
-        _, eje_y_px = mp(a, 0)
-        eje_y_px = cy
-        eje_x_px, _ = mp(0, 0)
+        # Ejes matemáticos
         self.canvas_lim.create_line(0, cy, draw_w, cy, fill=TEXTO_DIM, width=1.5)
         self.canvas_lim.create_line(eje_x_px, 0, eje_x_px, draw_h, fill=TEXTO_DIM, width=1.5)
+        self.canvas_lim.create_text(draw_w - 10, cy - 12, text="x", font=FONT_SMALL, fill=TEXTO_DIM)
+        self.canvas_lim.create_text(eje_x_px + 12, 10,    text="y", font=FONT_SMALL, fill=TEXTO_DIM)
 
-        # ── Marcas y etiquetas eje X ──
-        for i in range(-int(rango_x) - 1, int(rango_x) + 2):
-            val = a + i
-            px, _ = mp(val, 0)
-            if -5 <= px <= draw_w + 5:
-                self.canvas_lim.create_line(px, cy - 4, px, cy + 4, fill=BORDE_CARD, width=1)
-                self.canvas_lim.create_text(px, cy + 13, text=f"{val:.3g}",
-                                            font=FONT_SMALL, fill=TEXTO_DIM)
-
-        # ── Marcas y etiquetas eje Y ──
-        for j in range(-int(rango_x) - 1, int(rango_x) + 2):
-            if j == 0:
-                continue
-            _, py = mp(a, j)
-            if -5 <= py <= draw_h + 5:
-                self.canvas_lim.create_line(eje_x_px - 4, py, eje_x_px + 4, py, fill=BORDE_CARD, width=1)
-                self.canvas_lim.create_text(eje_x_px - 18, py, text=f"{j:.3g}",
-                                            font=FONT_SMALL, fill=TEXTO_DIM)
-
-        self.canvas_lim.create_text(draw_w - 10, cy - 12, text="x",
-                                     font=FONT_SMALL, fill=TEXTO_DIM)
-        self.canvas_lim.create_text(eje_x_px + 12, 10, text="y",
-                                     font=FONT_SMALL, fill=TEXTO_DIM)
-
-        # ── Asíntota vertical si es infinita ──
+        # Asíntota vertical
         if caso == "infinita":
             ax_sint, _ = mp(a, 0)
             self.canvas_lim.create_line(ax_sint, 3, ax_sint, draw_h - 3,
                                          fill=ROJO, width=2, dash=(6, 4))
-            self.canvas_lim.create_text(ax_sint + 10, 18,
-                                         text=f"x={a}", font=FONT_SMALL, fill=ROJO)
+            self.canvas_lim.create_text(ax_sint + 10, 18, text=f"x={a}",
+                                         font=FONT_SMALL, fill=ROJO)
 
-        # ── Dibujar curva de la función ──
-        for seg in segmentos:
-            x1, y1, x2, y2 = seg
-            in1 = (-30 <= x1 <= draw_w + 30 and -30 <= y1 <= draw_h + 30)
-            in2 = (-30 <= x2 <= draw_w + 30 and -30 <= y2 <= draw_h + 30)
+        # Curva
+        for x1, y1, x2, y2 in segmentos:
+            in1 = -30 <= x1 <= draw_w + 30 and -30 <= y1 <= draw_h + 30
+            in2 = -30 <= x2 <= draw_w + 30 and -30 <= y2 <= draw_h + 30
             if in1 or in2:
-                self.canvas_lim.create_line(x1, y1, x2, y2,
-                                            fill=VERDE, width=2.5,
+                self.canvas_lim.create_line(x1, y1, x2, y2, fill=VERDE, width=2.5,
                                             capstyle="round", joinstyle="round")
 
-        # ── Etiqueta a en el eje X ──
-        ax_label, _ = mp(a, 0)
-        self.canvas_lim.create_text(ax_label, cy + 24,
-                                     text=f"a={a}", font=FONT_SMALL, fill=NARANJA)
+        # Etiqueta a
+        self.canvas_lim.create_text(mp(a, 0)[0], cy + 24, text=f"a={a}",
+                                     font=FONT_SMALL, fill=NARANJA)
 
-        # ── Discontinuidad removible ──
+        # Discontinuidad removible
         if caso == "removible":
             lim_val = getattr(analisis, "lim_valor", None)
             f_en_a  = getattr(analisis, "f_en_a", None)
@@ -402,34 +346,31 @@ class PanelLimites(tk.Frame):
                 px_h, py_h = pantalla_fn(a, lim_val)
                 self.canvas_lim.create_oval(px_h - 7, py_h - 7, px_h + 7, py_h + 7,
                                              outline=ACENTO, fill="", width=3)
-                self.canvas_lim.create_text(px_h + 22, py_h - 10,
-                                             text=f"lim={lim_val}",
+                self.canvas_lim.create_text(px_h + 22, py_h - 10, text=f"lim={lim_val}",
                                              font=FONT_SMALL, fill=ACENTO)
-            if f_en_a is not None and isinstance(f_en_a, (int, float)):
+            if isinstance(f_en_a, (int, float)):
                 px_fa, py_fa = pantalla_fn(a, f_en_a)
                 self.canvas_lim.create_oval(px_fa - 5, py_fa - 5, px_fa + 5, py_fa + 5,
                                              fill=VERDE, outline=ENTRY_FG, width=2)
 
-        # ── Discontinuidad de salto ──
+        # Discontinuidad de salto
         if caso == "salto":
-            lim_izq = getattr(analisis, "lim_real_izq", None)
-            lim_der = getattr(analisis, "lim_real_der", None)
+            lim_izq = getattr(analisis, "lim_real_izq", getattr(analisis, "lim_valor", None))
+            lim_der = getattr(analisis, "lim_real_der", getattr(analisis, "lim_valor", None))
             if isinstance(lim_izq, (int, float)):
                 px_i, py_i = pantalla_fn(a, lim_izq)
                 self.canvas_lim.create_oval(px_i - 6, py_i - 6, px_i + 6, py_i + 6,
                                              outline=ROJO, fill="", width=3)
-                self.canvas_lim.create_text(px_i - 20, py_i - 12,
-                                             text=f"L⁻={lim_izq}",
+                self.canvas_lim.create_text(px_i - 20, py_i - 12, text=f"L⁻={lim_izq}",
                                              font=FONT_SMALL, fill=ROJO)
             if isinstance(lim_der, (int, float)):
                 px_d, py_d = pantalla_fn(a, lim_der)
                 self.canvas_lim.create_oval(px_d - 6, py_d - 6, px_d + 6, py_d + 6,
                                              fill=VERDE, outline=ENTRY_FG, width=2)
-                self.canvas_lim.create_text(px_d + 14, py_d - 12,
-                                             text=f"L⁺={lim_der}",
+                self.canvas_lim.create_text(px_d + 14, py_d - 12, text=f"L⁺={lim_der}",
                                              font=FONT_SMALL, fill=VERDE)
 
-        # ── Leyenda ──
+        # Leyenda inferior
         self.canvas_lim.create_text(draw_w // 2, draw_h - 8,
                                      text=f"Discontinuidad: {getattr(analisis, 'tipo_discontinuidad', '')}",
                                      font=FONT_SUBTITLE, fill=VERDE)
@@ -440,25 +381,21 @@ class PanelLimites(tk.Frame):
         if draw_h > visible_h:
             self.canvas_lim.yview_moveto((draw_h - visible_h) / 2 / draw_h)
 
+    # ─────────────────────────── CALLBACKS ─────────────────────────
+
     def _on_canvas_resize(self, event):
         if self._ultimo_tramos and self._ultimo_analisis:
             self._graficar(self._ultimo_tramos, self._ultimo_analisis)
 
     def _on_graph_mousewheel(self, event):
-        self._zoom_graph(event)
+        if self._ultimo_tramos and self._ultimo_analisis:
+            self._zoom_factor = max(0.3, min(self._zoom_factor * (1.15 if event.delta > 0 else 0.87), 5.0))
+            self._graficar(self._ultimo_tramos, self._ultimo_analisis)
         return "break"
 
     def _on_graph_shift_mousewheel(self, event):
-        self.canvas_lim.xview_scroll(int(-1*(event.delta/120)), "units")
+        self.canvas_lim.xview_scroll(int(-1 * (event.delta / 120)), "units")
         return "break"
-
-    def _zoom_graph(self, event):
-        if not self._ultimo_tramos or not self._ultimo_analisis:
-            return
-
-        factor = 1.15 if event.delta > 0 else 0.87
-        self._zoom_factor = max(0.3, min(self._zoom_factor * factor, 5.0))
-        self._graficar(self._ultimo_tramos, self._ultimo_analisis)
 
     def _mostrar_texto(self, texto):
         self.txt_analisis.config(state="normal")
@@ -474,9 +411,8 @@ class PanelLimites(tk.Frame):
 
     def _restore_placeholder(self, entry):
         if not entry.get().strip():
-            placeholder = getattr(entry, "_placeholder_text", "")
             entry.delete(0, "end")
-            entry.insert(0, placeholder)
+            entry.insert(0, getattr(entry, "_placeholder_text", ""))
             entry.config(fg=TEXTO_DIM)
 
     def _limpiar_defensa(self):
@@ -491,17 +427,15 @@ class PanelLimites(tk.Frame):
             return
 
         a = self.analisis
-        correctos = 0
-        total = 0
+        correctos = total = 0
 
-        def chk(entry, esperado_str):
+        def chk(entry, esperados):
             nonlocal correctos, total
             val = entry.get().strip()
             if not val or getattr(entry, "_placeholder_text", None) == val:
                 return
-            normalized = val.lower().replace(" ", "")
             total += 1
-            if any(e in normalized for e in esperado_str):
+            if any(e in val.lower().replace(" ", "") for e in esperados):
                 entry.config(bg="#c8e6c9", fg=BG_PRINCIPAL)
                 correctos += 1
             else:
@@ -517,40 +451,24 @@ class PanelLimites(tk.Frame):
             except (ValueError, TypeError):
                 return [str(v).lower(), str(v), "∞", "-∞", "+∞", "infinito"]
 
-        lim_izq_entry = self.entries_defensa["lim_izq"]
-        lim_der_entry = self.entries_defensa["lim_der"]
-        existe_entry = self.entries_defensa["lim_existe"]
-        fa_entry = self.entries_defensa["fa"]
-        cont_entry = self.entries_defensa["continua"]
-        tipo_entry = self.entries_defensa["tipo_disc"]
-
-        # Límite izquierda
-        liz = getattr(a, "lim_real_izq", None)
-        if liz is None:
-            liz = getattr(a, "lim_valor", None)
-        chk(lim_izq_entry, num_str(liz) + ["∞", "-∞", "+∞", "infinito"])
-
-        # Límite derecha
-        lde = getattr(a, "lim_real_der", None)
-        if lde is None:
-            lde = getattr(a, "lim_valor", None)
-        chk(lim_der_entry, num_str(lde) + ["∞", "-∞", "+∞", "infinito"])
-
-        # Existe
-        existe_ok = ["sí", "si", "s", "yes", "existe"] if getattr(a, "lim_existe", False) else ["no", "n", "noexiste"]
-        chk(existe_entry, existe_ok)
-
-        # f(a)
-        fa = getattr(a, "f_en_a", None)
-        chk(fa_entry, num_str(fa) + ["nodefinida", "indefinida", "noexiste"])
-
-        # Continua
-        cont_ok = ["sí", "si", "s", "yes", "continua"] if getattr(a, "es_continua", False) else ["no", "n", "nocontinua", "discontinua"]
-        chk(cont_entry, cont_ok)
-
-        # Tipo
+        liz  = getattr(a, "lim_real_izq", getattr(a, "lim_valor", None))
+        lde  = getattr(a, "lim_real_der", getattr(a, "lim_valor", None))
         tipo = getattr(a, "tipo_discontinuidad", "").lower()
-        chk(tipo_entry, [tipo, tipo.split()[0] if tipo else ""]) 
+
+        validaciones = {
+            "lim_izq":   num_str(liz)  + ["∞", "-∞", "+∞", "infinito"],
+            "lim_der":   num_str(lde)  + ["∞", "-∞", "+∞", "infinito"],
+            "lim_existe":["sí", "si", "s", "yes", "existe"] if getattr(a, "lim_existe", False)
+                         else ["no", "n", "noexiste"],
+            "fa":        num_str(getattr(a, "f_en_a", None)) + ["nodefinida", "indefinida", "noexiste"],
+            "continua":  ["sí", "si", "s", "yes", "continua"] if getattr(a, "es_continua", False)
+                         else ["no", "n", "nocontinua", "discontinua"],
+            "tipo_disc": [tipo, tipo.split()[0] if tipo else ""],
+        }
+
+        for key, esperados in validaciones.items():
+            if key in self.entries_defensa:
+                chk(self.entries_defensa[key], esperados)
 
         if total == 0:
             messagebox.showinfo("Aviso", "Complete al menos un campo.")
