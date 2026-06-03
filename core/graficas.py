@@ -48,7 +48,7 @@ def puntos_grafica(A, B, C, D, E, tipo, n=500):
             for rama in [1, -1]:
                 rama_pts = []
                 for i in range(n):
-                    t = -2.5 + 5.0 * i / n
+                    t = -3.5 + 7.0 * i / n
                     rama_pts.append((h + rama * a * cosh_taylor(t), k + b * sinh_taylor(t)))
                 puntos.append(("rama", rama_pts))
         else:
@@ -59,7 +59,7 @@ def puntos_grafica(A, B, C, D, E, tipo, n=500):
                 for rama in [1, -1]:
                     rama_pts = []
                     for i in range(n):
-                        t = -2.5 + 5.0 * i / n
+                        t = -3.5 + 7.0 * i / n
                         rama_pts.append((h + b * sinh_taylor(t), k + rama * a * cosh_taylor(t)))
                     puntos.append(("rama", rama_pts))
 
@@ -72,7 +72,7 @@ def puntos_grafica(A, B, C, D, E, tipo, n=500):
                 return []
             p_coef = -A / D
             q = const / D
-            x_vals = [h - 10 + 20 * i / n for i in range(n + 1)]
+            x_vals = [h - 15 + 30 * i / n for i in range(n + 1)]
             for x in x_vals:
                 puntos.append((x, p_coef * (x - h) ** 2 + q))
         else:
@@ -83,7 +83,7 @@ def puntos_grafica(A, B, C, D, E, tipo, n=500):
                 return []
             p_coef = -B / C
             q = const / C
-            y_vals = [k - 10 + 20 * i / n for i in range(n + 1)]
+            y_vals = [k - 15 + 30 * i / n for i in range(n + 1)]
             for y in y_vals:
                 puntos.append((p_coef * (y - k) ** 2 + q, y))
 
@@ -95,14 +95,15 @@ def puntos_grafica_limite(tramos, ancho=400, alto=300, rango_x=10):
     from core.limites import evaluar_funcion
 
     a = tramos["a"]
-    n = 400  # Aumentado de 200 a 400 para más puntos
+    n = 400
     cx = ancho / 2
     cy = alto / 2
+    # Escala centrada en 'a': x=a → cx, igual que en _graficar del panel
     escala_x = ancho / (2 * rango_x)
     escala_y = alto / (2 * rango_x)
 
     def mundo_a_pantalla(x, y):
-        px = cx + x * escala_x
+        px = cx + (x - a) * escala_x   # centrado en x=a
         py = cy - y * escala_y
         return px, py
 
