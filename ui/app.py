@@ -24,6 +24,9 @@ class AppEID(tk.Tk):
         self.configure(bg=BG_PRINCIPAL)
         self.resizable(True, True)
         configurar_estilos_ttk()
+        # Estado compartido de RUT validado
+        self.rut_validado = None
+        self.lbl_rut_actual = None  # Se inicializa en _construir_ui
         self._construir_ui()
 
     def _construir_ui(self):
@@ -37,6 +40,14 @@ class AppEID(tk.Tk):
                  font=FONT_SUBTITLE,
                  bg=BG_HEADER, fg=ACENTO).pack(side="left", padx=15, pady=8)
 
+        # RUT actual compartido
+        self.lbl_rut_actual = tk.Label(barra,
+                 text="RUT: —",
+                 font=FONT_SMALL if 'FONT_SMALL' in globals() else ("Segoe UI", 8),
+                 bg=BG_HEADER, fg=TEXTO_DIM,
+                 relief="flat", padx=10, pady=4)
+        self.lbl_rut_actual.pack(side="right", padx=5)
+
         tk.Label(barra,
                  text="Versión 2026 · Benjamin C. Eduardo D. Ricardo G.",
                  font=FONT_SMALL if 'FONT_SMALL' in globals() else ("Segoe UI", 8),
@@ -47,17 +58,76 @@ class AppEID(tk.Tk):
 
         self.panel_conica = PanelConica(self.notebook,
                                          cambiar_tab_callback=self._ir_limites,
+                                         actualizar_rut_callback=self._actualizar_rut_validado,
                                          logger=self.logger)
         self.notebook.add(self.panel_conica, text="Secciones Cónicas")
 
-        self.panel_limites = PanelLimites(self.notebook, logger=self.logger)
+        self.panel_limites = PanelLimites(self.notebook,
+                                          obtener_rut_callback=self._obtener_rut_validado,
+                                          actualizar_rut_callback=self._actualizar_rut_validado,
+                                          logger=self.logger)
         self.notebook.add(self.panel_limites, text="Funciones y Límites")
+
+        # Listener para cambios de pestaña - generar automáticamente en Límites
+        self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
 
         # Integrar Panel de Logs
         self.panel_logs = PanelLogs(self.notebook, logger=self.logger)
         self.notebook.add(self.panel_logs, text="Registro de Logs")
 
         self._agregar_tab_acerca()
+
+    def _actualizar_rut_validado(self, rut_completo):
+        """Almacena el RUT validado y lo muestra en la barra superior."""
+        self.rut_validado = rut_completo
+        if self.lbl_rut_actual:
+            self.lbl_rut_actual.config(text=f"RUT: {rut_completo}", fg=ACENTO)
+        if self.logger:
+            self.logger.info(f"RUT validado actualizado: {rut_completo}")
+        
+        # Actualizar automáticamente el panel de límites si está visible
+        current_tab_index = self.notebook.index(self.notebook.select())
+        if current_tab_index == 1:
+            # Si estamos en la pestaña de Límites, actualizar directamente
+            entrada_actual = self.panel_limites.entry_rut.get().strip()
+            if not entrada_actual or entrada_actual != rut_completo:
+                self.panel_limites.entry_rut.delete(0, "end")
+                self.panel_limites.entry_rut.insert(0, rut_completo)
+                if self.logger:
+                    self.logger.info(f"RUT pre-llenado en Panel Límites desde actualización: {rut_completo}")
+                self.after(150, self.panel_limites._procesar)
+
+    def _obtener_rut_validado(self):
+        """Retorna el RUT validado actualmente."""
+        return self.rut_validado
+
+    def _generar_limites_automatico(self):
+        """Callback para generar automáticamente en Panel Límites cuando hay RUT validado."""
+        if self.rut_validado:
+            if self.logger:
+                self.logger.info(f"Generando automáticamente funciones y límites para RUT: {self.rut_validado}")
+            self.panel_limites._procesar()
+
+    def _on_tab_changed(self, event):
+        """Se ejecuta cuando se cambia de pestaña."""
+        # Obtener índice de la pestaña actual
+        current_tab_index = self.notebook.index(self.notebook.select())
+        
+        # Si es la pestaña de Límites (índice 1) y hay un RUT validado
+        if current_tab_index == 1 and self.rut_validado:
+            if self.logger:
+                self.logger.info(f"Cambio a Panel Límites detectado. RUT validado: {self.rut_validado}")
+            
+            # Pre-llenar el RUT
+            entrada_actual = self.panel_limites.entry_rut.get().strip()
+            if not entrada_actual or entrada_actual != self.rut_validado:
+                self.panel_limites.entry_rut.delete(0, "end")
+                self.panel_limites.entry_rut.insert(0, self.rut_validado)
+                if self.logger:
+                    self.logger.info(f"RUT pre-llenado en Panel Límites: {self.rut_validado}")
+                
+                # Generar automáticamente con un pequeño delay
+                self.after(150, self.panel_limites._procesar)
 
     def _ir_limites(self):
         self.notebook.select(1)

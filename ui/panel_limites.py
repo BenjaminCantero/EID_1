@@ -16,9 +16,11 @@ from ui.componentes import (
 
 
 class PanelLimites(tk.Frame):
-    def __init__(self, parent, logger=None):
+    def __init__(self, parent, obtener_rut_callback=None, actualizar_rut_callback=None, logger=None):
         super().__init__(parent, bg=BG_PRINCIPAL)
         self.logger = logger
+        self.obtener_rut = obtener_rut_callback
+        self.actualizar_rut = actualizar_rut_callback
         self.tramos = None
         self.analisis = None
         self.a = 0
@@ -272,6 +274,13 @@ class PanelLimites(tk.Frame):
         self.lbl_estado.config(text=f"✓ Función generada — {resultado.tipo_discontinuidad} — Complete los campos de defensa", fg=VERDE)
         if self.logger:
             self.logger.info(f"PanelLímites: Función generada para RUT '{rut_str}' — caso '{resultado.caso_tipo}', tipo '{resultado.tipo_discontinuidad}'")
+
+        # Actualizar RUT validado en la aplicación principal
+        if self.actualizar_rut:
+            from core.rut import formatear_rut
+            cuerpo_8 = "".join(str(d) for d in resultado.digitos).zfill(8)
+            rut_formateado = formatear_rut(cuerpo_8, resultado.dv)
+            self.actualizar_rut(rut_formateado)
 
         for row in self.tabla_tree.get_children():
             self.tabla_tree.delete(row)

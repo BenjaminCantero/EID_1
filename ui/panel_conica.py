@@ -16,9 +16,10 @@ from ui.componentes import (
 
 
 class PanelConica(tk.Frame):
-    def __init__(self, parent, cambiar_tab_callback=None, logger=None):
+    def __init__(self, parent, cambiar_tab_callback=None, actualizar_rut_callback=None, logger=None):
         super().__init__(parent, bg=BG_PRINCIPAL)
         self.cambiar_tab = cambiar_tab_callback
+        self.actualizar_rut = actualizar_rut_callback
         self.logger = logger
         self.digitos = None
         self.dv = None
@@ -262,6 +263,13 @@ class PanelConica(tk.Frame):
         self.lbl_estado.config(text=f"RUT válido — {resultado.tipo_conica} detectada — Complete los elementos geométricos", fg=VERDE)
         if self.logger:
             self.logger.info(f"PanelCónica: RUT válido '{rut_str}' → tipo '{resultado.tipo_conica}'")
+
+        # Actualizar RUT validado en la aplicación principal
+        if self.actualizar_rut:
+            from core.rut import formatear_rut
+            cuerpo_8 = "".join(str(d) for d in resultado.digitos).zfill(8)
+            rut_formateado = formatear_rut(cuerpo_8, resultado.dv)
+            self.actualizar_rut(rut_formateado)
 
         self.elementos = resultado.elementos_geometricos
         for e in self.entries_elem.values():
