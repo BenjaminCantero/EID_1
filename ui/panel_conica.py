@@ -28,6 +28,7 @@ class PanelConica(tk.Frame):
         self.elementos = {}
         self._ultima_grafica = None
         self._zoom_factor = 1.0
+        self.lbl_zoom = None
         self._construir_ui()
 
     def _construir_ui(self):
@@ -92,12 +93,31 @@ class PanelConica(tk.Frame):
         right_scroll_canvas.bind("<MouseWheel>", _on_right_mousewheel)
         right.bind("<MouseWheel>", _on_right_mousewheel)
 
-        # ── Paso 3 Visualización Gráfica ────────────────────────────────────
-        card_graph, body_graph = crear_card(right, "Paso 3: Visualización Gráfica", "Representación de la cónica en el plano cartesiano")
-        card_graph.pack(fill="x", pady=(0, 10))
+        # ── Paso 3: Visualización Gráfica + Defensa Oral ─────
+        card_graph, body_graph = crear_card(right, "Paso 3: Visualización Gráfica",
+                                            "Gráfica · resultado · elementos geométricos para la defensa oral")
+        card_graph.pack(fill="both", expand=True, pady=(0, 10))
+
+        # ── Controles de zoom ─────────────────────────────────
+        ctrl_bar = tk.Frame(body_graph, bg=BG_CARD)
+        ctrl_bar.pack(fill="x", pady=(0, 3))
+        tk.Label(ctrl_bar, text="Zoom:", font=FONT_SMALL,
+                 bg=BG_CARD, fg=TEXTO_DIM).pack(side="left", padx=(0, 4))
+        for _txt, _cmd in [(" + ", self._zoom_in), (" − ", self._zoom_out), ("1:1", self._zoom_reset)]:
+            _b = tk.Button(ctrl_bar, text=_txt, command=_cmd,
+                           font=FONT_BODY, bg=BG_CANVAS, fg=ACENTO,
+                           activebackground=BORDE_CARD, activeforeground=ACENTO,
+                           relief="flat", padx=8, pady=1, cursor="hand2",
+                           highlightthickness=1, highlightbackground=BORDE_CARD)
+            _b.pack(side="left", padx=1)
+        self.lbl_zoom = tk.Label(ctrl_bar, text="100%",
+                                  font=FONT_SMALL, bg=BG_CARD, fg=ACENTO)
+        self.lbl_zoom.pack(side="left", padx=6)
+        tk.Label(ctrl_bar, text="Rueda: zoom  ·  Clic+arrastrar: mover",
+                 font=FONT_SMALL, bg=BG_CARD, fg=TEXTO_DIM).pack(side="right", padx=4)
 
         # ── Canvas gráfica con altura fija ───────────────────
-        graph_canvas_frame = tk.Frame(body_graph, bg=BG_CANVAS, height=310)
+        graph_canvas_frame = tk.Frame(body_graph, bg=BG_CANVAS, height=320)
         graph_canvas_frame.pack(fill="x", padx=0, pady=(0, 4))
         graph_canvas_frame.pack_propagate(False)
         graph_canvas_frame.columnconfigure(0, weight=1)
@@ -123,63 +143,75 @@ class PanelConica(tk.Frame):
         self.canvas.bind("<ButtonPress-1>", lambda e: self.canvas.scan_mark(e.x, e.y))
         self.canvas.bind("<B1-Motion>", lambda e: self.canvas.scan_dragto(e.x, e.y, gain=1))
 
-        # Canvas label - se actualiza con el tipo de cónica
+        # ── Info compacta: tipo y ecuación ────────────────────
         self.lbl_canvas_info = tk.Label(body_graph, text="Esperando análisis...",
                                          font=FONT_SMALL,
                                          bg=BG_CARD, fg=TEXTO_DIM)
-        self.lbl_canvas_info.pack(anchor="w")
+        self.lbl_canvas_info.pack(anchor="w", pady=(2, 0))
 
-        # ── Tipo de cónica resaltado ─────────────────────────
-        self.lbl_tipo = tk.Label(right, text="",
-                                  font=FONT_TITLE,
-                                  bg=BG_PRINCIPAL, fg=VERDE)
-        self.lbl_tipo.pack(pady=5)
+        frame_resumen = tk.Frame(body_graph, bg=BG_CARD)
+        frame_resumen.pack(fill="x", pady=(2, 0))
 
-        card_resumen, body_resumen = crear_card(right, "Resultado")
-        card_resumen.pack(fill="x", pady=(0, 10))
-        
-        self.lbl_resumen_ecuacion = tk.Label(body_resumen,
-                                             text="Ecuación: —",
+        self.lbl_tipo = tk.Label(frame_resumen, text="",
+                                  font=FONT_SUBTITLE,
+                                  bg=BG_CARD, fg=VERDE)
+        self.lbl_tipo.pack(side="left", padx=(0, 10))
+
+        self.lbl_resumen_tipo = tk.Label(frame_resumen, text="",
+                                         font=FONT_BODY,
+                                         bg=BG_CARD, fg=ACENTO)
+        self.lbl_resumen_tipo.pack(side="left")
+
+        self.lbl_resumen_ecuacion = tk.Label(body_graph,
+                                             text="",
                                              font=FONT_CODE,
                                              bg=BG_CARD, fg=TEXTO,
                                              anchor="w", justify="left",
-                                             wraplength=320)
+                                             wraplength=400)
         self.lbl_resumen_ecuacion.pack(fill="x", pady=(2, 0))
-        self.lbl_resumen_tipo = tk.Label(body_resumen,
-                                         text="Tipo: —",
-                                         font=FONT_SUBTITLE,
-                                         bg=BG_CARD, fg=ACENTO,
-                                         anchor="w")
-        self.lbl_resumen_tipo.pack(fill="x", pady=(2, 0))
 
-        # ── Elementos geométricos (campos para defensa oral) ──
-        card_defensa, body_defensa = crear_card(right, "Elementos Geométricos", "Complete los campos para verificar sus respuestas en la defensa oral")
-        card_defensa.pack(fill="x", pady=(0, 10))
+        # ── Separador ─────────────────────────────────────────
+        tk.Frame(body_graph, bg=BORDE_CARD, height=1).pack(fill="x", pady=8)
+
+        # ── Elementos geométricos integrados a la gráfica ─────
+        tk.Label(body_graph,
+                 text="Elementos Geométricos — Complete desde la gráfica para la defensa oral",
+                 font=FONT_SUBTITLE, fg=ACENTO, bg=BG_CARD,
+                 anchor="w").pack(fill="x", pady=(0, 6))
+
+        campos_grid = tk.Frame(body_graph, bg=BG_CARD)
+        campos_grid.pack(fill="x")
+        campos_grid.columnconfigure(0, weight=1)
+        campos_grid.columnconfigure(1, weight=1)
 
         self.entries_elem = {}
-        for nombre in ["Centro", "Vértice(s)", "Foco(s)", "Radio / a / b", "Directriz"]:
-            fila = tk.Frame(body_defensa, bg=BG_CARD)
-            fila.pack(fill="x", pady=3)
-            tk.Label(fila, text=f"{nombre}:", width=15, anchor="w",
-                     font=FONT_SUBTITLE,
-                     bg=BG_CARD, fg=TEXTO).pack(side="left")
-            e = tk.Entry(fila, font=FONT_CODE, width=22,
+        for idx, nombre in enumerate(["Centro", "Vértice(s)", "Foco(s)", "Radio / a / b", "Directriz"]):
+            row_i = idx // 2
+            col_i = idx % 2
+            celda = tk.Frame(campos_grid, bg=BG_CARD)
+            celda.grid(row=row_i, column=col_i, sticky="ew",
+                       padx=(0, 6) if col_i == 0 else 0, pady=3)
+            tk.Label(celda, text=f"{nombre}:", width=13, anchor="w",
+                     font=FONT_SMALL, bg=BG_CARD, fg=TEXTO).pack(side="left")
+            e = tk.Entry(celda, font=FONT_CODE, width=16,
                           bg=ENTRY_BG, fg=ENTRY_FG, insertbackground=ENTRY_FG,
-                          relief="flat", bd=0, highlightthickness=1, highlightbackground=BORDE_CARD)
+                          relief="flat", bd=0, highlightthickness=1,
+                          highlightbackground=BORDE_CARD)
             e.pack(side="left", padx=3, ipady=2)
             self.entries_elem[nombre] = e
 
-        # Botón verificar (para defensa)
-        btn_row = tk.Frame(body_defensa, bg=BG_CARD)
+        # Botón verificar
+        btn_row = tk.Frame(body_graph, bg=BG_CARD)
         btn_row.pack(fill="x", pady=(10, 0))
-        
+
         self.btn_verificar = tk.Button(btn_row, text="Verificar Respuestas",
                   command=self._verificar_elementos,
                   font=FONT_SUBTITLE,
-                  bg=VERDE, fg=BG_PRINCIPAL, activebackground="#3ee884", activeforeground=BG_PRINCIPAL,
+                  bg=VERDE, fg=BG_PRINCIPAL, activebackground="#3ee884",
+                  activeforeground=BG_PRINCIPAL,
                   relief="flat", padx=15, pady=6, cursor="hand2")
         self.btn_verificar.pack(side="left")
-        
+
         def on_enter_ver(e):
             self.btn_verificar.config(bg="#3ee884")
         def on_leave_ver(e):
@@ -454,6 +486,13 @@ class PanelConica(tk.Frame):
 
         # ── Marcar elementos geométricos ──
         self._dibujar_elementos(elementos, mundo_pantalla, draw_w, draw_h)
+
+        # ── Etiqueta de tipo en esquina superior izquierda ───
+        self.canvas.create_rectangle(4, 4, 136, 22,
+                                      fill=BG_CANVAS, outline=BORDE_CARD, width=1)
+        self.canvas.create_text(8, 13, text=f"  {tipo}",
+                                 font=FONT_SMALL, fill=ACENTO, anchor="w")
+
         self.canvas.configure(scrollregion=(0, 0, draw_w, draw_h))
 
         # Si el canvas virtual es más grande que visible, centrar
@@ -480,7 +519,30 @@ class PanelConica(tk.Frame):
 
         factor = 1.15 if event.delta > 0 else 0.87
         self._zoom_factor = max(0.3, min(self._zoom_factor * factor, 5.0))
+        if self.lbl_zoom:
+            self.lbl_zoom.config(text=f"{int(self._zoom_factor * 100)}%")
         self._graficar(*self._ultima_grafica)
+
+    def _zoom_in(self):
+        self._zoom_factor = min(self._zoom_factor * 1.25, 5.0)
+        if self.lbl_zoom:
+            self.lbl_zoom.config(text=f"{int(self._zoom_factor * 100)}%")
+        if self._ultima_grafica:
+            self._graficar(*self._ultima_grafica)
+
+    def _zoom_out(self):
+        self._zoom_factor = max(self._zoom_factor / 1.25, 0.3)
+        if self.lbl_zoom:
+            self.lbl_zoom.config(text=f"{int(self._zoom_factor * 100)}%")
+        if self._ultima_grafica:
+            self._graficar(*self._ultima_grafica)
+
+    def _zoom_reset(self):
+        self._zoom_factor = 1.0
+        if self.lbl_zoom:
+            self.lbl_zoom.config(text="100%")
+        if self._ultima_grafica:
+            self._graficar(*self._ultima_grafica)
 
     def _punto_valido(self, x, y, w, h):
         """Verifica si un punto está dentro del canvas con margen."""
@@ -488,64 +550,69 @@ class PanelConica(tk.Frame):
         return -margen <= x <= w + margen and -margen <= y <= h + margen
 
     def _dibujar_elementos(self, elementos, mundo_pantalla, w, h):
-        """Dibuja los elementos geométricos con mejor visibilidad."""
-        # Centro (punto de referencia)
+        """Dibuja elementos geométricos con coordenadas visibles."""
+
+        def _lbl(px, py, text, color, offset_x=12, offset_y=-12):
+            """Texto con fondo semiopaco para legibilidad."""
+            chars = len(text)
+            bw = chars * 6 + 6
+            bh = 14
+            self.canvas.create_rectangle(
+                px + offset_x - 2, py + offset_y - bh // 2,
+                px + offset_x + bw, py + offset_y + bh // 2,
+                fill=BG_CANVAS, outline="", stipple="")
+            self.canvas.create_text(px + offset_x, py + offset_y,
+                                     text=text, font=FONT_SMALL, fill=color, anchor="w")
+
         if "Centro" in elementos:
             hx, ky = elementos["Centro"]
             px, py = mundo_pantalla(hx, ky)
-            self.canvas.create_oval(px - 6, py - 6, px + 6, py + 6,
-                                     fill=ROJO, outline=ENTRY_FG, width=2)
-            self.canvas.create_text(px + 15, py - 12,
-                                     text=f"Centro",
-                                     font=FONT_SMALL, fill=ROJO,
-                                     anchor="w")
+            self.canvas.create_oval(px - 7, py - 7, px + 7, py + 7,
+                                     fill=ROJO, outline="#ffffff", width=2)
+            _lbl(px, py, f"C ({hx:.3g}, {ky:.3g})", ROJO)
 
-        # Foco único (para parábola)
         if "Foco" in elementos:
             fx, fy = elementos["Foco"]
             px, py = mundo_pantalla(fx, fy)
             self.canvas.create_oval(px - 5, py - 5, px + 5, py + 5,
-                                     fill=NARANJA, outline=ENTRY_FG, width=2)
-            self.canvas.create_text(px + 12, py - 8,
-                                     text="F",
-                                     font=FONT_SMALL, fill=NARANJA,
-                                     anchor="w")
+                                     fill=NARANJA, outline="#ffffff", width=2)
+            _lbl(px, py, f"F ({fx:.3g}, {fy:.3g})", NARANJA)
 
-        # Focos múltiples (para elipse e hipérbola)
         if "Focos" in elementos:
+            offsets = [(12, -14), (12, 6)]
             for i, foco in enumerate(elementos["Focos"]):
                 fx, fy = foco
                 px, py = mundo_pantalla(fx, fy)
-                self.canvas.create_oval(px - 5, py - 5, px + 5, py + 5,
-                                         fill=NARANJA, outline=ENTRY_FG, width=2)
-                label = f"F{i+1}"
-                self.canvas.create_text(px + 12, py - 8,
-                                         text=label,
-                                         font=FONT_SMALL, fill=NARANJA,
-                                         anchor="w")
+                self.canvas.create_oval(px - 6, py - 6, px + 6, py + 6,
+                                         fill=NARANJA, outline="#ffffff", width=2)
+                ox, oy = offsets[i % 2]
+                _lbl(px, py, f"F{i+1} ({fx:.3g}, {fy:.3g})", NARANJA, ox, oy)
 
-        # Vértices
         if "Vértice" in elementos:
             vx, vy = elementos["Vértice"]
             px, py = mundo_pantalla(vx, vy)
             self.canvas.create_rectangle(px - 6, py - 6, px + 6, py + 6,
-                                          fill=VERDE, outline=ENTRY_FG, width=2)
-            self.canvas.create_text(px + 14, py - 12,
-                                     text="V",
-                                     font=FONT_SMALL, fill=VERDE,
-                                     anchor="w")
+                                          fill=VERDE, outline="#ffffff", width=2)
+            _lbl(px, py, f"V ({vx:.3g}, {vy:.3g})", VERDE)
 
         if "Vértices" in elementos:
+            offsets = [(12, -14), (12, 6)]
             for i, vertice in enumerate(elementos["Vértices"]):
                 vx, vy = vertice
                 px, py = mundo_pantalla(vx, vy)
                 self.canvas.create_rectangle(px - 6, py - 6, px + 6, py + 6,
-                                              fill=VERDE, outline=ENTRY_FG, width=2)
-                label = f"V{i+1}"
-                self.canvas.create_text(px + 14, py - 12,
-                                         text=label,
-                                         font=FONT_SMALL, fill=VERDE,
-                                         anchor="w")
+                                              fill=VERDE, outline="#ffffff", width=2)
+                ox, oy = offsets[i % 2]
+                _lbl(px, py, f"V{i+1} ({vx:.3g}, {vy:.3g})", VERDE, ox, oy)
+
+        if "Radio" in elementos:
+            r = elementos["Radio"]
+            if "Centro" in elementos:
+                hx, ky = elementos["Centro"]
+                px, py = mundo_pantalla(hx, ky)
+                self.canvas.create_text(px + 4, py + 16,
+                                         text=f"r = {r:.3g}",
+                                         font=FONT_SMALL, fill=ROJO, anchor="w")
 
     def _mostrar_texto(self, texto):
         self.txt_pasos.config(state="normal")

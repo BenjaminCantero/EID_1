@@ -27,6 +27,7 @@ class PanelLimites(tk.Frame):
         self._ultimo_tramos = None
         self._ultimo_analisis = None
         self._zoom_factor = 1.0
+        self.lbl_zoom = None
         self._construir_ui()
 
     def _construir_ui(self):
@@ -114,12 +115,31 @@ class PanelLimites(tk.Frame):
         right_scroll_canvas.bind("<MouseWheel>", _on_right_mousewheel)
         right.bind("<MouseWheel>", _on_right_mousewheel)
 
-        # ── Paso 3 Visualización Gráfica ────────────────────────────────────
-        card_graph, body_graph = crear_card(right, "Paso 3: Visualización Gráfica", "Comportamiento de la función y su discontinuidad")
-        card_graph.pack(fill="x", pady=(0, 10))
+        # ── Paso 3: Visualización Gráfica + Defensa Oral ─────
+        card_graph, body_graph = crear_card(right, "Paso 3: Visualización Gráfica",
+                                            "Función generada · comportamiento en punto crítico · defensa oral")
+        card_graph.pack(fill="both", expand=True, pady=(0, 10))
+
+        # ── Controles de zoom ─────────────────────────────────
+        ctrl_bar = tk.Frame(body_graph, bg=BG_CARD)
+        ctrl_bar.pack(fill="x", pady=(0, 3))
+        tk.Label(ctrl_bar, text="Zoom:", font=FONT_SMALL,
+                 bg=BG_CARD, fg=TEXTO_DIM).pack(side="left", padx=(0, 4))
+        for _txt, _cmd in [(" + ", self._zoom_in), (" − ", self._zoom_out), ("1:1", self._zoom_reset)]:
+            _b = tk.Button(ctrl_bar, text=_txt, command=_cmd,
+                           font=FONT_BODY, bg=BG_CANVAS, fg=ACENTO,
+                           activebackground=BORDE_CARD, activeforeground=ACENTO,
+                           relief="flat", padx=8, pady=1, cursor="hand2",
+                           highlightthickness=1, highlightbackground=BORDE_CARD)
+            _b.pack(side="left", padx=1)
+        self.lbl_zoom = tk.Label(ctrl_bar, text="100%",
+                                  font=FONT_SMALL, bg=BG_CARD, fg=ACENTO)
+        self.lbl_zoom.pack(side="left", padx=6)
+        tk.Label(ctrl_bar, text="Rueda: zoom  ·  Clic+arrastrar: mover",
+                 font=FONT_SMALL, bg=BG_CARD, fg=TEXTO_DIM).pack(side="right", padx=4)
 
         # ── Canvas gráfica con altura fija ───────────────────
-        graph_canvas_frame = tk.Frame(body_graph, bg=BG_CANVAS, height=310)
+        graph_canvas_frame = tk.Frame(body_graph, bg=BG_CANVAS, height=320)
         graph_canvas_frame.pack(fill="x", padx=0, pady=(0, 4))
         graph_canvas_frame.pack_propagate(False)
         graph_canvas_frame.columnconfigure(0, weight=1)
@@ -145,45 +165,55 @@ class PanelLimites(tk.Frame):
         self.canvas_lim.bind("<ButtonPress-1>", lambda e: self.canvas_lim.scan_mark(e.x, e.y))
         self.canvas_lim.bind("<B1-Motion>", lambda e: self.canvas_lim.scan_dragto(e.x, e.y, gain=1))
 
-        # Canvas info label
+        # ── Info compacta: tipo función y discontinuidad ──────
         self.lbl_canvas_lim_info = tk.Label(body_graph, text="Esperando análisis...",
                                              font=FONT_SMALL,
                                              bg=BG_CARD, fg=TEXTO_DIM)
-        self.lbl_canvas_lim_info.pack(anchor="w")
+        self.lbl_canvas_lim_info.pack(anchor="w", pady=(2, 0))
 
-        # ── Función generada ──────────────────────────────────
-        card_resumen, body_resumen = crear_card(right, "Función Generada")
-        card_resumen.pack(fill="x", pady=(0, 10))
-
-        self.lbl_funcion = tk.Label(body_resumen, text="Ninguna función generada aún.",
+        self.lbl_funcion = tk.Label(body_graph, text="",
                                      font=FONT_CODE,
                                      bg=BG_CARD, fg=TEXTO,
-                                     wraplength=320, justify="left")
+                                     wraplength=400, justify="left")
         self.lbl_funcion.pack(fill="x", pady=(2, 0))
 
-        # ── Campos para defensa oral ──────────────────────────
-        card_defensa, body_defensa = crear_card(right, "Defensa Oral", "Complete los campos para demostrar su comprensión de límites")
-        card_defensa.pack(fill="x", pady=(0, 10))
+        # ── Separador ─────────────────────────────────────────
+        tk.Frame(body_graph, bg=BORDE_CARD, height=1).pack(fill="x", pady=8)
+
+        # ── Campos de defensa integrados a la gráfica ─────────
+        tk.Label(body_graph,
+                 text="Defensa Oral — Complete desde la gráfica",
+                 font=FONT_SUBTITLE, fg=ACENTO, bg=BG_CARD,
+                 anchor="w").pack(fill="x", pady=(0, 6))
 
         campos = [
-            ("lim_izq", "Límite por izquierda:", "lim x→a⁻ f(x) = "),
-            ("lim_der", "Límite por derecha:", "lim x→a⁺ f(x) = "),
-            ("lim_existe", "¿Existe el límite?:", "sí / no"),
-            ("fa", "f(a) =", "valor o 'no def.'"),
-            ("continua", "¿Es continua?:", "sí / no"),
-            ("tipo_disc", "Tipo de discontinuidad:", "removible / salto / infinita"),
-            ("justificacion", "Justificación matemática:", "descripción breve"),
+            ("lim_izq",      "Lím. izquierda:",     "lim x→a⁻ f(x) = "),
+            ("lim_der",      "Lím. derecha:",        "lim x→a⁺ f(x) = "),
+            ("lim_existe",   "¿Existe límite?:",     "sí / no"),
+            ("fa",           "f(a) =",               "valor o 'no def.'"),
+            ("continua",     "¿Es continua?:",       "sí / no"),
+            ("tipo_disc",    "Tipo discontinuidad:", "removible/salto/infinita"),
+            ("justificacion","Justificación:",        "descripción breve"),
         ]
+
+        campos_grid = tk.Frame(body_graph, bg=BG_CARD)
+        campos_grid.pack(fill="x")
+        campos_grid.columnconfigure(0, weight=1)
+        campos_grid.columnconfigure(1, weight=1)
+
         self.entries_defensa = {}
-        for key, etiqueta_full, placeholder in campos:
-            fila = tk.Frame(body_defensa, bg=BG_CARD)
-            fila.pack(fill="x", pady=3)
-            tk.Label(fila, text=etiqueta_full, width=22, anchor="w",
-                     font=FONT_SUBTITLE,
-                     bg=BG_CARD, fg=TEXTO).pack(side="left")
-            e = tk.Entry(fila, font=FONT_CODE, width=22,
+        for idx, (key, etiqueta, placeholder) in enumerate(campos):
+            row_i = idx // 2
+            col_i = idx % 2
+            celda = tk.Frame(campos_grid, bg=BG_CARD)
+            celda.grid(row=row_i, column=col_i, sticky="ew",
+                       padx=(0, 6) if col_i == 0 else 0, pady=3)
+            tk.Label(celda, text=etiqueta, width=16, anchor="w",
+                     font=FONT_SMALL, bg=BG_CARD, fg=TEXTO).pack(side="left")
+            e = tk.Entry(celda, font=FONT_CODE, width=15,
                           bg=ENTRY_BG, fg=TEXTO_DIM, insertbackground=ENTRY_FG,
-                          relief="flat", bd=0, highlightthickness=1, highlightbackground=BORDE_CARD)
+                          relief="flat", bd=0, highlightthickness=1,
+                          highlightbackground=BORDE_CARD)
             e.pack(side="left", padx=2, ipady=2)
             e.insert(0, placeholder)
             e._placeholder_text = placeholder
@@ -192,16 +222,17 @@ class PanelLimites(tk.Frame):
             self.entries_defensa[key] = e
 
         # Botones defensa
-        btn_row = tk.Frame(body_defensa, bg=BG_CARD)
+        btn_row = tk.Frame(body_graph, bg=BG_CARD)
         btn_row.pack(fill="x", pady=(10, 0))
 
         btn_verificar = tk.Button(btn_row, text="Verificar",
                   command=self._verificar_defensa,
                   font=FONT_SUBTITLE,
-                  bg=VERDE, fg=BG_PRINCIPAL, activebackground="#3ee884", activeforeground=BG_PRINCIPAL,
+                  bg=VERDE, fg=BG_PRINCIPAL, activebackground="#3ee884",
+                  activeforeground=BG_PRINCIPAL,
                   relief="flat", padx=15, pady=6, cursor="hand2")
         btn_verificar.pack(side="left", padx=(0, 10))
-        
+
         def on_enter_ver(e):
             btn_verificar.config(bg="#3ee884")
         def on_leave_ver(e):
@@ -212,10 +243,12 @@ class PanelLimites(tk.Frame):
         btn_limpiar = tk.Button(btn_row, text="Limpiar Campos",
                   command=self._limpiar_defensa,
                   font=FONT_SUBTITLE,
-                  bg=BG_PRINCIPAL, fg=TEXTO, activebackground=BORDE_CARD, activeforeground=TEXTO,
-                  relief="flat", padx=15, pady=6, cursor="hand2", highlightthickness=1, highlightbackground=BORDE_CARD)
+                  bg=BG_PRINCIPAL, fg=TEXTO, activebackground=BORDE_CARD,
+                  activeforeground=TEXTO,
+                  relief="flat", padx=15, pady=6, cursor="hand2",
+                  highlightthickness=1, highlightbackground=BORDE_CARD)
         btn_limpiar.pack(side="left")
-        
+
         def on_enter_lim(e):
             btn_limpiar.config(bg=BORDE_CARD)
         def on_leave_lim(e):
@@ -438,10 +471,36 @@ class PanelLimites(tk.Frame):
                                              text=f"L⁺={lim_der}",
                                              font=FONT_SMALL, fill=VERDE)
 
-        # ── Leyenda ──
-        self.canvas_lim.create_text(draw_w // 2, draw_h - 8,
-                                     text=f"Discontinuidad: {getattr(analisis, 'tipo_discontinuidad', '')}",
-                                     font=FONT_SUBTITLE, fill=VERDE)
+        # ── Panel de información de límites (esquina superior izquierda) ──
+        lim_izq_val = getattr(analisis, 'lim_izquierda', None)
+        lim_der_val = getattr(analisis, 'lim_derecha', None)
+        f_a_val     = getattr(analisis, 'f_en_a', None)
+        tipo_disc   = getattr(analisis, 'tipo_discontinuidad', '')
+
+        def _fmt(v):
+            if v is None:
+                return "No def."
+            if isinstance(v, str):
+                return v
+            try:
+                fv = float(v)
+                return "-∞" if fv < -1e8 else ("+∞" if fv > 1e8 else f"{fv:.4g}")
+            except (TypeError, ValueError):
+                return str(v)
+
+        ann_lines = [
+            (f"lím x→{a}⁻  =  {_fmt(lim_izq_val)}", ROJO),
+            (f"lím x→{a}⁺  =  {_fmt(lim_der_val)}", VERDE),
+            (f"f({a})       =  {_fmt(f_a_val)}",      ACENTO),
+            (f"Tipo: {tipo_disc}",                     TEXTO_DIM),
+        ]
+        box_h = len(ann_lines) * 17 + 8
+        self.canvas_lim.create_rectangle(4, 4, 230, 4 + box_h,
+                                          fill=BG_CANVAS, outline=BORDE_CARD, width=1)
+        for i, (line, color) in enumerate(ann_lines):
+            self.canvas_lim.create_text(10, 13 + i * 17,
+                                         text=line, font=FONT_SMALL, fill=color, anchor="w")
+
         self.canvas_lim.configure(scrollregion=(0, 0, draw_w, draw_h))
 
         if draw_w > visible_w:
@@ -467,7 +526,30 @@ class PanelLimites(tk.Frame):
 
         factor = 1.15 if event.delta > 0 else 0.87
         self._zoom_factor = max(0.3, min(self._zoom_factor * factor, 5.0))
+        if self.lbl_zoom:
+            self.lbl_zoom.config(text=f"{int(self._zoom_factor * 100)}%")
         self._graficar(self._ultimo_tramos, self._ultimo_analisis)
+
+    def _zoom_in(self):
+        self._zoom_factor = min(self._zoom_factor * 1.25, 5.0)
+        if self.lbl_zoom:
+            self.lbl_zoom.config(text=f"{int(self._zoom_factor * 100)}%")
+        if self._ultimo_tramos and self._ultimo_analisis:
+            self._graficar(self._ultimo_tramos, self._ultimo_analisis)
+
+    def _zoom_out(self):
+        self._zoom_factor = max(self._zoom_factor / 1.25, 0.3)
+        if self.lbl_zoom:
+            self.lbl_zoom.config(text=f"{int(self._zoom_factor * 100)}%")
+        if self._ultimo_tramos and self._ultimo_analisis:
+            self._graficar(self._ultimo_tramos, self._ultimo_analisis)
+
+    def _zoom_reset(self):
+        self._zoom_factor = 1.0
+        if self.lbl_zoom:
+            self.lbl_zoom.config(text="100%")
+        if self._ultimo_tramos and self._ultimo_analisis:
+            self._graficar(self._ultimo_tramos, self._ultimo_analisis)
 
     def _mostrar_texto(self, texto):
         self.txt_analisis.config(state="normal")

@@ -10,7 +10,6 @@ from ui.componentes import (
 )
 from ui.panel_conica import PanelConica
 from ui.panel_limites import PanelLimites
-from ui.panel_logs import PanelLogs
 
 
 class AppEID(tk.Tk):
@@ -70,10 +69,6 @@ class AppEID(tk.Tk):
 
         # Listener para cambios de pestaña - generar automáticamente en Límites
         self.notebook.bind("<<NotebookTabChanged>>", self._on_tab_changed)
-
-        # Integrar Panel de Logs
-        self.panel_logs = PanelLogs(self.notebook, logger=self.logger)
-        self.notebook.add(self.panel_logs, text="Registro de Logs")
 
         self._agregar_tab_acerca()
 
@@ -170,10 +165,10 @@ class AppEID(tk.Tk):
         info_header.pack(fill="x", pady=(0, 8))
 
         specs_text = (
-            "🏫  Curso: MAT1186 — Introducción al Cálculo\n"
-            "💻  Carrera: Ingeniería Civil en Informática\n"
-            "🗓️  Periodo Académico: Primer Semestre 2026\n"
-            "🛠️  Tecnologías: Python 3.8+ · Tkinter GUI · Service Architecture\n"
+            "Curso: MAT1186 — Introducción al Cálculo\n"
+            "Carrera: Ingeniería Civil en Informática\n"
+            "Periodo Académico: Primer Semestre 2026\n"
+            "Tecnologías: Python 3.8+ · Tkinter GUI · Service Architecture\n"
         )
         lbl_specs = tk.Label(body_right, text=specs_text, font=FONT_BODY, fg=TEXTO, bg=BG_CARD, justify="left", anchor="w", pady=10)
         lbl_specs.pack(fill="x")
@@ -185,9 +180,9 @@ class AppEID(tk.Tk):
         autores_header.pack(fill="x", pady=(0, 8))
 
         autores_text = (
-            "👨‍💻  Benjamin Cantero\n"
-            "👨‍💻  Eduardo D.\n"
-            "👨‍💻  Ricardo G."
+            "Benjamin Cantero\n"
+            "Eduardo D.\n"
+            "Ricardo G."
         )
         lbl_autores = tk.Label(body_right, text=autores_text, font=FONT_BODY, fg=TEXTO, bg=BG_CARD, justify="left", anchor="w")
         lbl_autores.pack(fill="x")
