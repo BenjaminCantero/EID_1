@@ -93,6 +93,8 @@ class LimitesAnalysis:
     tramos_info: Dict[str, Any] = field(default_factory=dict)
     lim_izquierda: Any = None
     lim_derecha: Any = None
+    lim_real_izquierda: Any = None
+    lim_real_derecha: Any = None
     lim_existe: bool = False
     lim_valor: Any = None
     f_en_a: Any = None
@@ -121,6 +123,8 @@ class LimitesAnalysis:
             "limites": {
                 "lim_izquierda": self.lim_izquierda,
                 "lim_derecha": self.lim_derecha,
+                "lim_real_izquierda": self.lim_real_izquierda,
+                "lim_real_derecha": self.lim_real_derecha,
                 "lim_existe": self.lim_existe,
                 "lim_valor": self.lim_valor,
                 "f_en_a": self.f_en_a,
@@ -340,6 +344,14 @@ def analizar_limites(rut_str):
     resultado.lim_derecha = analisis_limites.get("lim_der")
     resultado.lim_existe = analisis_limites.get("lim_existe", False)
     resultado.lim_valor = analisis_limites.get("lim_valor")
+    resultado.lim_real_izquierda = analisis_limites.get(
+        "lim_real_izq",
+        resultado.lim_valor if analisis_limites.get("lim_existe") else resultado.lim_izquierda
+    )
+    resultado.lim_real_derecha = analisis_limites.get(
+        "lim_real_der",
+        resultado.lim_valor if analisis_limites.get("lim_existe") else resultado.lim_derecha
+    )
     resultado.f_en_a = analisis_limites.get("f_en_a")
     resultado.es_continua = analisis_limites.get("continua", False)
     resultado.tipo_discontinuidad = analisis_limites.get("tipo_disc", "")

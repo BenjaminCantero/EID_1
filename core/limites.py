@@ -151,6 +151,8 @@ def calcular_limites(tramos):
         resultado["lim_valor"] = lim_real_izq
         resultado["continua"] = False
         resultado["tipo_disc"] = "Removible"
+        resultado["lim_real_izq"] = lim_real_izq
+        resultado["lim_real_der"] = lim_real_der
 
     elif caso == "salto":
         lim_real_izq = a + tramos["d2"]

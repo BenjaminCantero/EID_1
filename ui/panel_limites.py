@@ -454,8 +454,8 @@ class PanelLimites(tk.Frame):
 
         # ── Discontinuidad de salto ──
         if caso == "salto":
-            lim_izq = getattr(analisis, "lim_real_izq", None)
-            lim_der = getattr(analisis, "lim_real_der", None)
+            lim_izq = getattr(analisis, "lim_real_izquierda", None)
+            lim_der = getattr(analisis, "lim_real_derecha", None)
             if isinstance(lim_izq, (int, float)):
                 px_i, py_i = pantalla_fn(a, lim_izq)
                 self.canvas_lim.create_oval(px_i - 6, py_i - 6, px_i + 6, py_i + 6,
@@ -472,8 +472,8 @@ class PanelLimites(tk.Frame):
                                              font=FONT_SMALL, fill=VERDE)
 
         # ── Panel de información de límites (esquina superior izquierda) ──
-        lim_izq_val = getattr(analisis, 'lim_izquierda', None)
-        lim_der_val = getattr(analisis, 'lim_derecha', None)
+        lim_izq_val = getattr(analisis, 'lim_real_izquierda', None)
+        lim_der_val = getattr(analisis, 'lim_real_derecha', None)
         f_a_val     = getattr(analisis, 'f_en_a', None)
         tipo_disc   = getattr(analisis, 'tipo_discontinuidad', '')
 
@@ -616,13 +616,13 @@ class PanelLimites(tk.Frame):
         tipo_entry = self.entries_defensa["tipo_disc"]
 
         # Límite izquierda
-        liz = getattr(a, "lim_real_izq", None)
+        liz = getattr(a, "lim_real_izquierda", None)
         if liz is None:
             liz = getattr(a, "lim_valor", None)
         chk(lim_izq_entry, num_str(liz) + ["∞", "-∞", "+∞", "infinito"])
 
         # Límite derecha
-        lde = getattr(a, "lim_real_der", None)
+        lde = getattr(a, "lim_real_derecha", None)
         if lde is None:
             lde = getattr(a, "lim_valor", None)
         chk(lim_der_entry, num_str(lde) + ["∞", "-∞", "+∞", "infinito"])
