@@ -171,15 +171,15 @@ def _canonica_circunferencia(A, B, C, D, E):
     pasos.append("Paso 3: Completar el cuadrado en x:")
     h, add_x = completar_cuadrado(1, c2)
     pasos.append(f"  x² + ({c2:.4g})x = (x + {c2/2:.4g})² - ({c2/2:.4g})²")
-    pasos.append(f"  Término agregado a LHS: ({c2/2:.4g})² = {(c2/2)**2:.4g}")
-    pasos.append(f"  Término equivalente en RHS: +{(c2/2)**2:.4g}")
+    pasos.append(f"  Término agregado al Lado Izquierdo (LHS): ({c2/2:.4g})² = {(c2/2)**2:.4g}")
+    pasos.append(f"  Término equivalente en el Lado Derecho (RHS): +{(c2/2)**2:.4g}")
     pasos.append(f"  h = {h:.4g}")
     pasos.append("")
     pasos.append("Paso 4: Completar el cuadrado en y:")
     k, add_y = completar_cuadrado(1, d2)
     pasos.append(f"  y² + ({d2:.4g})y = (y + {d2/2:.4g})² - ({d2/2:.4g})²")
-    pasos.append(f"  Término agregado a LHS: ({d2/2:.4g})² = {(d2/2)**2:.4g}")
-    pasos.append(f"  Término equivalente en RHS: +{(d2/2)**2:.4g}")
+    pasos.append(f"  Término agregado al Lado Izquierdo (LHS): ({d2/2:.4g})² = {(d2/2)**2:.4g}")
+    pasos.append(f"  Término equivalente en el Lado Derecho (RHS): +{(d2/2)**2:.4g}")
     pasos.append(f"  k = {k:.4g}")
     pasos.append("")
     r2 = -e2 - add_x - add_y
@@ -245,7 +245,7 @@ def _canonica_elipse(A, B, C, D, E):
         return pasos, elementos, canonica
 
     pasos.append("")
-    pasos.append("Paso 5: Dividir para obtener la forma estándar con RHS = 1:")
+    pasos.append("Paso 5: Dividir para obtener la forma estándar con el Lado Derecho (RHS) = 1:")
     a2 = constante / A
     b2 = constante / B
     pasos.append(f"  a² = {constante:.4g} / {A:.4g} = {a2:.4g}")

@@ -35,7 +35,7 @@ def validar_rut(rut_str):
     suma = 0
     pasos = []
     pasos.append(f"Cuerpo del RUT: {cuerpo_8}")
-    pasos.append(f"DV ingresado: {dv_ingresado}")
+    pasos.append(f"Dígito Verificador (DV) ingresado: {dv_ingresado}")
     pasos.append("")
     pasos.append("Multiplicación por serie [2,3,4,5,6,7] de derecha a izquierda:")
 
@@ -58,9 +58,9 @@ def validar_rut(rut_str):
     else:
         dv_calculado = str(resultado)
 
-    pasos.append(f"11 - {resto} = {resultado}  →  DV esperado: {dv_calculado}")
+    pasos.append(f"11 - {resto} = {resultado}  →  Dígito Verificador (DV) esperado: {dv_calculado}")
     es_valido = dv_calculado == dv_ingresado
-    pasos.append(f"\nDV calculado '{dv_calculado}' {'==' if es_valido else '!='} DV ingresado '{dv_ingresado}'")
+    pasos.append(f"\nDígito Verificador (DV) calculado '{dv_calculado}' {'==' if es_valido else '!='} DV ingresado '{dv_ingresado}'")
     pasos.append(f"RUT {'VÁLIDO ✓' if es_valido else 'INVÁLIDO ✗'}")
 
     digitos = [int(c) for c in cuerpo_8]

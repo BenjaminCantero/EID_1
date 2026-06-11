@@ -323,7 +323,7 @@ class PanelLimites(tk.Frame):
             lado = fila['lado']
             tag = "izq" if lado == "izq" else "der"
             self.tabla_tree.insert("", "end",
-                                    values=(x_str, y_str, "← izq" if lado == "izq" else "der →"),
+                                    values=(x_str, y_str, "← Izquierda" if lado == "izq" else "Derecha →"),
                                     tags=(tag,))
         self.tabla_tree.tag_configure("izq", background="#1a3a6a", foreground="#90caf9")
         self.tabla_tree.tag_configure("der", background="#1a4a2a", foreground="#a5d6a7")
@@ -461,14 +461,14 @@ class PanelLimites(tk.Frame):
                 self.canvas_lim.create_oval(px_i - 6, py_i - 6, px_i + 6, py_i + 6,
                                              outline=ROJO, fill="", width=3)
                 self.canvas_lim.create_text(px_i - 20, py_i - 12,
-                                             text=f"L⁻={lim_izq}",
+                                             text=f"Lím. Izquierda={lim_izq}",
                                              font=FONT_SMALL, fill=ROJO)
             if isinstance(lim_der, (int, float)):
                 px_d, py_d = pantalla_fn(a, lim_der)
                 self.canvas_lim.create_oval(px_d - 6, py_d - 6, px_d + 6, py_d + 6,
                                              fill=VERDE, outline=ENTRY_FG, width=2)
                 self.canvas_lim.create_text(px_d + 14, py_d - 12,
-                                             text=f"L⁺={lim_der}",
+                                             text=f"Lím. Derecha={lim_der}",
                                              font=FONT_SMALL, fill=VERDE)
 
         # ── Panel de información de límites (esquina superior izquierda) ──
