@@ -354,10 +354,17 @@ class PanelLimites(tk.Frame):
         a = tramos["a"]
         rango_x = 8.0
 
+        # ── Centro vertical de la vista ───────────────────────
+        # En salto/removible los límites valen a+d y pueden quedar fuera
+        # del rango [-rango_x, rango_x]. Centramos la vista en el rasgo de
+        # interés para que el salto/límite siempre sea visible.
+        centro_y = self._calcular_centro_y(caso, analisis)
+
         # Obtener segmentos y pantalla_fn desde graficas.py
-        # pantalla_fn usa: cx + (x-a)*escala_x, cy - y*escala_y
+        # pantalla_fn usa: cx + (x-a)*escala_x, cy - (y-centro_y)*escala_y
         # donde escala_x = draw_w/(2*rango_x), escala_y = draw_h/(2*rango_x)
-        segmentos, pantalla_fn = puntos_grafica_limite(tramos, draw_w, draw_h, rango_x=rango_x)
+        segmentos, pantalla_fn = puntos_grafica_limite(
+            tramos, draw_w, draw_h, rango_x=rango_x, centro_y=centro_y)
 
         # Usar las mismas escalas que puntos_grafica_limite
         cx = draw_w / 2
@@ -367,7 +374,10 @@ class PanelLimites(tk.Frame):
 
         def mp(x, y):
             """Mismo sistema de coordenadas que puntos_grafica_limite."""
-            return cx + (x - a) * escala_x, cy - y * escala_y
+            return cx + (x - a) * escala_x, cy - (y - centro_y) * escala_y
+
+        # Valor entero de y más cercano al centro (base para grilla/etiquetas Y)
+        base_y = int(round(centro_y))
 
         # ── Fondo ──
         self.canvas_lim.create_rectangle(0, 0, draw_w, draw_h, fill=BG_CANVAS, outline="")
@@ -377,29 +387,33 @@ class PanelLimites(tk.Frame):
             px, _ = mp(a + i, 0)
             if -5 <= px <= draw_w + 5:
                 self.canvas_lim.create_line(px, 0, px, draw_h, fill=BORDE_CARD, width=0.5)
-        for j in range(-int(rango_x) - 1, int(rango_x) + 2):
+        for j in range(base_y - int(rango_x) - 1, base_y + int(rango_x) + 2):
             _, py = mp(a, j)
             if -5 <= py <= draw_h + 5:
                 self.canvas_lim.create_line(0, py, draw_w, py, fill=BORDE_CARD, width=0.5)
 
         # ── Ejes matemáticos ──
-        _, eje_y_px = mp(a, 0)
-        eje_y_px = cy
-        eje_x_px, _ = mp(0, 0)
-        self.canvas_lim.create_line(0, cy, draw_w, cy, fill=TEXTO_DIM, width=1.5)
+        eje_x_px, _ = mp(0, 0)        # x-pixel donde x=0 (eje Y)
+        _, eje_y_py = mp(a, 0)        # y-pixel donde y=0 (eje X)
+        self.canvas_lim.create_line(0, eje_y_py, draw_w, eje_y_py, fill=TEXTO_DIM, width=1.5)
         self.canvas_lim.create_line(eje_x_px, 0, eje_x_px, draw_h, fill=TEXTO_DIM, width=1.5)
+
+        # Fila donde se ubican las marcas/etiquetas del eje X. Si y=0 quedó
+        # fuera de pantalla (vista centrada lejos del origen), la fijamos a
+        # un borde visible para no perder las referencias del eje X.
+        label_row = max(14, min(eje_y_py, draw_h - 30))
 
         # ── Marcas y etiquetas eje X ──
         for i in range(-int(rango_x) - 1, int(rango_x) + 2):
             val = a + i
             px, _ = mp(val, 0)
             if -5 <= px <= draw_w + 5:
-                self.canvas_lim.create_line(px, cy - 4, px, cy + 4, fill=BORDE_CARD, width=1)
-                self.canvas_lim.create_text(px, cy + 13, text=f"{val:.3g}",
+                self.canvas_lim.create_line(px, label_row - 4, px, label_row + 4, fill=BORDE_CARD, width=1)
+                self.canvas_lim.create_text(px, label_row + 13, text=f"{val:.3g}",
                                             font=FONT_SMALL, fill=TEXTO_DIM)
 
         # ── Marcas y etiquetas eje Y ──
-        for j in range(-int(rango_x) - 1, int(rango_x) + 2):
+        for j in range(base_y - int(rango_x) - 1, base_y + int(rango_x) + 2):
             if j == 0:
                 continue
             _, py = mp(a, j)
@@ -408,7 +422,7 @@ class PanelLimites(tk.Frame):
                 self.canvas_lim.create_text(eje_x_px - 18, py, text=f"{j:.3g}",
                                             font=FONT_SMALL, fill=TEXTO_DIM)
 
-        self.canvas_lim.create_text(draw_w - 10, cy - 12, text="x",
+        self.canvas_lim.create_text(draw_w - 10, eje_y_py - 12, text="x",
                                      font=FONT_SMALL, fill=TEXTO_DIM)
         self.canvas_lim.create_text(eje_x_px + 12, 10, text="y",
                                      font=FONT_SMALL, fill=TEXTO_DIM)
@@ -433,7 +447,7 @@ class PanelLimites(tk.Frame):
 
         # ── Etiqueta a en el eje X ──
         ax_label, _ = mp(a, 0)
-        self.canvas_lim.create_text(ax_label, cy + 24,
+        self.canvas_lim.create_text(ax_label, label_row + 24,
                                      text=f"a={a}", font=FONT_SMALL, fill=NARANJA)
 
         # ── Discontinuidad removible ──
@@ -507,6 +521,29 @@ class PanelLimites(tk.Frame):
             self.canvas_lim.xview_moveto((draw_w - visible_w) / 2 / draw_w)
         if draw_h > visible_h:
             self.canvas_lim.yview_moveto((draw_h - visible_h) / 2 / draw_h)
+
+    def _calcular_centro_y(self, caso, analisis):
+        """Determina el centro vertical de la vista según el tipo de función.
+
+        - salto: centra entre ambos límites laterales para que el salto sea
+          visible aunque los valores (a+d) sean grandes.
+        - removible: centra en el valor del límite (el hueco).
+        - infinita: centra en 0 (la asíntota cruza el origen verticalmente).
+        """
+        if caso == "salto":
+            li = getattr(analisis, "lim_real_izquierda", None)
+            ld = getattr(analisis, "lim_real_derecha", None)
+            vals = [v for v in (li, ld) if isinstance(v, (int, float))]
+            if vals:
+                return sum(vals) / len(vals)
+        elif caso == "removible":
+            lv = getattr(analisis, "lim_valor", None)
+            if isinstance(lv, (int, float)):
+                return lv
+            fa = getattr(analisis, "f_en_a", None)
+            if isinstance(fa, (int, float)):
+                return fa
+        return 0.0
 
     def _on_canvas_resize(self, event):
         if self._ultimo_tramos and self._ultimo_analisis:

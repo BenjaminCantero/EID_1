@@ -90,8 +90,14 @@ def puntos_grafica(A, B, C, D, E, tipo, n=500):
     return puntos
 
 
-def puntos_grafica_limite(tramos, ancho=400, alto=300, rango_x=10):
-    """Genera segmentos para graficar la función por tramos."""
+def puntos_grafica_limite(tramos, ancho=400, alto=300, rango_x=10, centro_y=0.0):
+    """Genera segmentos para graficar la función por tramos.
+
+    centro_y desplaza el centro vertical de la vista: el valor y=centro_y
+    queda en el medio del canvas. Esto permite que el salto/límite sea
+    visible aunque tome valores grandes (p. ej. a + d en una discontinuidad
+    de salto).
+    """
     from core.limites import evaluar_funcion
 
     a = tramos["a"]
@@ -104,7 +110,7 @@ def puntos_grafica_limite(tramos, ancho=400, alto=300, rango_x=10):
 
     def mundo_a_pantalla(x, y):
         px = cx + (x - a) * escala_x   # centrado en x=a
-        py = cy - y * escala_y
+        py = cy - (y - centro_y) * escala_y  # centrado en y=centro_y
         return px, py
 
     segmentos = []
@@ -116,7 +122,7 @@ def puntos_grafica_limite(tramos, ancho=400, alto=300, rango_x=10):
         if abs(x - a) < 0.05:
             continue
         y = evaluar_funcion(x, tramos)
-        if y is None or abs(y) > rango_x * 3:
+        if y is None or abs(y - centro_y) > rango_x * 3:
             continue
         px, py = mundo_a_pantalla(x, y)
         if x < a:
