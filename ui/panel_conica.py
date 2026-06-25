@@ -184,8 +184,17 @@ class PanelConica(tk.Frame):
         campos_grid.columnconfigure(0, weight=1)
         campos_grid.columnconfigure(1, weight=1)
 
+        campos_elementos = [
+            ("Centro", "ej: (h, k)"),
+            ("Vértice(s)", "ej: V(h, k)"),
+            ("Foco(s)", "ej: F(c, k)"),
+            ("Radio / a / b", "r=... / a=..., b=..."),
+            ("Ejes", "mayor/menor o transv."),
+            ("Directriz", "ej: x = ... / y = ..."),
+        ]
+
         self.entries_elem = {}
-        for idx, nombre in enumerate(["Centro", "Vértice(s)", "Foco(s)", "Radio / a / b", "Ejes", "Directriz"]):
+        for idx, (nombre, placeholder) in enumerate(campos_elementos):
             row_i = idx // 2
             col_i = idx % 2
             celda = tk.Frame(campos_grid, bg=BG_CARD)
@@ -194,10 +203,14 @@ class PanelConica(tk.Frame):
             tk.Label(celda, text=f"{nombre}:", width=13, anchor="w",
                      font=FONT_SMALL, bg=BG_CARD, fg=TEXTO).pack(side="left")
             e = tk.Entry(celda, font=FONT_CODE, width=16,
-                          bg=ENTRY_BG, fg=ENTRY_FG, insertbackground=ENTRY_FG,
+                          bg=ENTRY_BG, fg=TEXTO_DIM, insertbackground=ENTRY_FG,
                           relief="flat", bd=0, highlightthickness=1,
                           highlightbackground=BORDE_CARD)
             e.pack(side="left", padx=3, ipady=2)
+            e.insert(0, placeholder)
+            e._placeholder_text = placeholder
+            e.bind("<FocusIn>", lambda event, entry=e: self._clear_placeholder(entry))
+            e.bind("<FocusOut>", lambda event, entry=e: self._restore_placeholder(entry))
             self.entries_elem[nombre] = e
 
         # Botón verificar
@@ -621,6 +634,18 @@ class PanelConica(tk.Frame):
         self.txt_pasos.config(state="disabled")
         self.txt_pasos.see("1.0")
 
+    def _clear_placeholder(self, entry):
+        if getattr(entry, "_placeholder_text", None) == entry.get():
+            entry.delete(0, "end")
+            entry.config(fg=ENTRY_FG, bg=ENTRY_BG)
+
+    def _restore_placeholder(self, entry):
+        if not entry.get().strip():
+            placeholder = getattr(entry, "_placeholder_text", "")
+            entry.delete(0, "end")
+            entry.insert(0, placeholder)
+            entry.config(fg=TEXTO_DIM, bg=ENTRY_BG)
+
     def _limpiar_resultado(self):
         self.lbl_tipo.config(text="")
         self.lbl_resumen_ecuacion.config(text="Ecuación: —")
@@ -639,12 +664,18 @@ class PanelConica(tk.Frame):
     def _set_defensa_state(self, enabled):
         state = "normal" if enabled else "disabled"
         bg = ENTRY_BG if enabled else BG_PRINCIPAL
-        fg = ENTRY_FG if enabled else TEXTO_DIM
         for entry in self.entries_elem.values():
-            entry.config(state=state, bg=bg, fg=fg)
+            entry.config(state="normal", bg=bg)
+            self._restore_placeholder(entry)
+            if entry.get() != getattr(entry, "_placeholder_text", None):
+                entry.config(fg=ENTRY_FG if enabled else TEXTO_DIM)
+            entry.config(state=state)
         if not enabled:
             for entry in self.entries_elem.values():
+                entry.config(state="normal")
                 entry.delete(0, "end")
+                self._restore_placeholder(entry)
+                entry.config(state=state, bg=bg, fg=TEXTO_DIM)
 
     def _limpiar(self):
         self.entry_rut.delete(0, "end")
@@ -697,7 +728,7 @@ class PanelConica(tk.Frame):
 
         for nombre, entry in self.entries_elem.items():
             val = entry.get().strip()
-            if not val:
+            if not val or getattr(entry, "_placeholder_text", None) == val:
                 continue
             total += 1
             entry.config(bg="#fff9c4", fg=BG_PRINCIPAL)  # amarillo neutro por defecto
