@@ -250,6 +250,20 @@ def _canonica_elipse(A, B, C, D, E):
     b2 = constante / B
     pasos.append(f"  a² = {constante:.4g} / {A:.4g} = {a2:.4g}")
     pasos.append(f"  b² = {constante:.4g} / {B:.4g} = {b2:.4g}")
+
+    # Elipse imaginaria: si la constante tiene signo opuesto a A y B,
+    # ambos denominadores quedan negativos → no existe lugar geométrico real.
+    if a2 < 0 or b2 < 0:
+        pasos.append("")
+        pasos.append("  ⚠ a² < 0 y b² < 0: ambos denominadores son negativos.")
+        pasos.append("  La suma de dos cuadrados nunca puede ser negativa, por lo que")
+        pasos.append("  NO existe ningún punto real que satisfaga la ecuación.")
+        pasos.append("  → Elipse imaginaria (conjunto vacío en el plano real).")
+        canonica = (f"(x - {h:.4g})²/{a2:.4g} + (y - {k:.4g})²/{b2:.4g} = 1"
+                    "   [elipse imaginaria — sin lugar geométrico real]")
+        pasos.append(f"  Forma canónica: {canonica}")
+        return pasos, elementos, canonica
+
     canonica = f"(x - {h:.4g})²/{a2:.4g} + (y - {k:.4g})²/{b2:.4g} = 1"
     pasos.append(f"  Forma canónica: {canonica}")
 
@@ -338,6 +352,8 @@ def _canonica_hiperbola(A, B, C, D, E):
         elementos["Centro"] = (round(h, 4), round(k, 4))
         elementos["Vértices"] = (round(h, 4), round(k - b, 4)), (round(h, 4), round(k + b, 4))
         elementos["Focos"] = (round(h, 4), round(k - c_foco, 4)), (round(h, 4), round(k + c_foco, 4))
+        elementos["Eje transverso"] = f"2·{b:.4g} = {2*b:.4g}"
+        elementos["Eje conjugado"] = f"2·{a:.4g} = {2*a:.4g}"
 
     pasos.append("")
     pasos.append("=== Procedimiento inverso (canónica → general) ===")

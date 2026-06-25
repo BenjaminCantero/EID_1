@@ -185,7 +185,7 @@ class PanelConica(tk.Frame):
         campos_grid.columnconfigure(1, weight=1)
 
         self.entries_elem = {}
-        for idx, nombre in enumerate(["Centro", "Vértice(s)", "Foco(s)", "Radio / a / b", "Directriz"]):
+        for idx, nombre in enumerate(["Centro", "Vértice(s)", "Foco(s)", "Radio / a / b", "Ejes", "Directriz"]):
             row_i = idx // 2
             col_i = idx % 2
             celda = tk.Frame(campos_grid, bg=BG_CARD)
@@ -720,12 +720,25 @@ class PanelConica(tk.Frame):
                     esperado_key = "Radio"
                 elif "a (semi-eje mayor)" in self.elementos and "b (semi-eje menor)" in self.elementos:
                     esperado_key = "a_b_semi_ejes"
+            elif "Ejes" in nombre:
+                # Reúne cualquier dato de ejes disponible según el tipo de cónica:
+                # hipérbola → eje transverso/conjugado; elipse → semiejes a y b.
+                ejes_nums = []
+                for k_ in ("Eje transverso", "Eje conjugado",
+                           "a (semi-eje mayor)", "b (semi-eje menor)"):
+                    if k_ in self.elementos:
+                        ejes_nums.extend(parse_numbers(str(self.elementos[k_])))
+                if ejes_nums:
+                    esperado_key = "ejes_combo"
+                    ejes_esperado = tuple(ejes_nums)
             elif "Directriz" in nombre and "Directriz" in self.elementos:
                 esperado_key = "Directriz"
 
             if esperado_key:
                 if esperado_key == "a_b_semi_ejes":
                     esperado = (self.elementos["a (semi-eje mayor)"], self.elementos["b (semi-eje menor)"])
+                elif esperado_key == "ejes_combo":
+                    esperado = ejes_esperado
                 else:
                     esperado = self.elementos[esperado_key]
 
